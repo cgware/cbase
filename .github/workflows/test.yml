@@ -56,6 +56,9 @@ jobs:
       - name: Run
         run: cmake --build build --target test --config ${{ matrix.conf }}
 
+      - name: Log
+        run: cat build/Testing/Temporary/LastTest.log
+
   Windows-CMake:
     runs-on: windows-latest
     strategy:
@@ -76,3 +79,6 @@ jobs:
 
       - name: Run
         run: cmake --build build --target run_tests --config ${{ matrix.conf }}
+
+      - name: Log
+        run: cat build/Testing/Temporary/LastTest.log
