@@ -15,13 +15,13 @@ void c_startw(void *file)
 {
 	fflush(file);
 	setlocale(LC_ALL, "");
-	freopen(NULL, "w", file);
+	file = freopen(NULL, "w", file);
 }
 
 void c_endw(void *file)
 {
 	fflush(file);
-	freopen(NULL, "w", file);
+	file = freopen(NULL, "w", file);
 }
 
 int c_wprintv(const wchar_t *fmt, va_list args)
