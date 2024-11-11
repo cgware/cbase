@@ -75,19 +75,19 @@ static int t_char()
 
 	EXPECT(c_dprintf(PRINT_DST_STD(), "┌─┬─┐") == 5 * 3);
 	c_startw(stdout);
-	EXPECT(c_dwprintf(PRINT_DST_WSTD(), L"┌─┬─┐") == 5);
+	EXPECT(c_dwprintf(PRINT_DST_WSTD(), L"\u250C\u2500\u252C\u2500\u2510") == 5);
 	c_endw(stdout);
 	c_printf("\n");
 
 	EXPECT(c_dprintf(PRINT_DST_STD(), "├─┼─┤") == 5 * 3);
 	c_startw(stdout);
-	EXPECT(c_dwprintf(PRINT_DST_WSTD(), L"├─┼─┤") == 5);
+	EXPECT(c_dwprintf(PRINT_DST_WSTD(), L"\u251C\u2500\u253C\u2500\u2524") == 5);
 	c_endw(stdout);
 	c_printf("\n");
 
 	EXPECT(c_dprintf(PRINT_DST_STD(), "└─┴─┘") == 5 * 3);
 	c_startw(stdout);
-	EXPECT(c_dwprintf(PRINT_DST_WSTD(), L"└─┴─┘") == 5);
+	EXPECT(c_dwprintf(PRINT_DST_WSTD(), L"\u2514\u2500\u2534\u2500\u2518") == 5);
 	c_endw(stdout);
 	c_printf("\n");
 

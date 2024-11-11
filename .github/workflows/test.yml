@@ -21,46 +21,58 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        config: [Debug, Release]
+        conf: [Debug, Release]
         arch: [x64, x86]
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Make
-        run: make test CONFIG=${{ matrix.config }} ARCH=${{ matrix.arch }}
+      - name: Prepare
+        run: |
+          sudo apt-get update
+          sudo apt-get install gcc-multilib
 
-      - name: Run
-        run: ./bin/${{matrix.configuration}}-${{matrix.platform}}/tests/test_cplatform/test_cplatform
+      - name: Make
+        run: make test CONFIG=${{ matrix.conf }} ARCH=${{ matrix.arch }}
 
   Ubuntu-CMake:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        config: [Debug, Release]
+        conf: [Debug, Release]
         arch: [x64, x86]
 
     steps:
       - uses: actions/checkout@v4
 
+      - name: Prepare
+        run: |
+          sudo apt-get update
+          sudo apt-get install gcc-multilib
+
       - name: Build
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DARCH=${{ matrix.arch }}
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.conf }} -DARCH=${{ matrix.arch }}
 
       - name: Run
-        run: cmake --build build --target test --config ${{ matrix.config }}
+        run: cmake --build build --target test --config ${{ matrix.conf }}
 
   Windows-CMake:
     runs-on: windows-latest
     strategy:
       matrix:
-        config: [Debug, Release]
+        conf: [Debug, Release]
         arch: [x64, x86]
+        include:
+          - arch: x64
+            warch: x64
+          - arch: x86
+            warch: Win32
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Build
-        run: cmake -S . -B build -A ${{ matrix.arch }} -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DARCH=${{ matrix.arch }}
+        run: cmake -S . -B build -A ${{ matrix.warch }} -DCMAKE_BUILD_TYPE=${{ matrix.conf }} -DARCH=${{ matrix.arch }}
 
       - name: Run
-        run: cmake --build build --target run_tests --config ${{ matrix.config }}
+        run: cmake --build build --target run_tests --config ${{ matrix.conf }}

@@ -2,26 +2,31 @@
 
 #include "platform.h"
 
+#include <locale.h>
 #include <stdio.h>
 #include <wchar.h>
 
-#if defined(C_WIN)
-	#include <io.h>
-#else
-	#include <locale.h>
-#endif
-
 void c_startw(void *file)
 {
-	fflush(file);
-	setlocale(LC_ALL, "");
-	file = freopen(NULL, "w", file);
+	FILE *f = (FILE *)file;
+	fflush(f);
+	setlocale(LC_ALL, "en_US.UTF-8");
+#if defined(C_WIN)
+	freopen_s(&f, NULL, "w", f);
+#else
+	f = freopen(NULL, "w", f);
+#endif
 }
 
 void c_endw(void *file)
 {
-	fflush(file);
-	file = freopen(NULL, "w", file);
+	FILE *f = (FILE *)file;
+	fflush(f);
+#if defined(C_WIN)
+	freopen_s(&f, NULL, "w", f);
+#else
+	f = freopen(NULL, "w", f);
+#endif
 }
 
 int c_wprintv(const wchar_t *fmt, va_list args)
