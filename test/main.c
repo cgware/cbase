@@ -1,6 +1,7 @@
 #include "mem_stats.h"
 #include "platform.h"
 #include "print.h"
+#include "wprint.h"
 
 #include <stdio.h>
 
@@ -37,7 +38,7 @@ static int t_print()
 	int ret	    = 0;
 	char buf[1] = {0};
 
-	EXPECT(c_printv(NULL, NULL) == 0);
+	EXPECT(c_printf(NULL) == 0);
 
 	EXPECT(c_sprintf(buf, sizeof(buf), 0, "") == 0);
 	EXPECT(c_sprintv(NULL, 0, 0, NULL, NULL) == 0);
@@ -50,17 +51,44 @@ static int t_print()
 	return ret;
 }
 
+static int t_wprint()
+{
+	int ret	       = 0;
+	wchar_t buf[1] = {0};
+
+	EXPECT(c_wprintf(NULL) == 0);
+
+	EXPECT(c_swprintf(buf, sizeof(buf), 0, L"") == 0);
+	EXPECT(c_swprintv(NULL, 0, 0, NULL, NULL) == 0);
+	EXPECT(c_dwprintf(PRINT_DST_WNONE(), NULL) == 0);
+#ifdef C_LINUX
+	wchar_t cbuf[2] = {0};
+	EXPECT(c_dwprintf(PRINT_DST_WBUF(cbuf, sizeof(cbuf), 0), L"abc") == 0);
+#endif
+
+	return ret;
+}
+
 static int t_char()
 {
 	int ret = 0;
 
 	EXPECT(c_dprintf(PRINT_DST_STD(), "┌─┬─┐") == 5 * 3);
+	c_startw(stdout);
+	EXPECT(c_dwprintf(PRINT_DST_WSTD(), L"┌─┬─┐") == 5);
+	c_endw(stdout);
 	c_printf("\n");
 
 	EXPECT(c_dprintf(PRINT_DST_STD(), "├─┼─┤") == 5 * 3);
+	c_startw(stdout);
+	EXPECT(c_dwprintf(PRINT_DST_WSTD(), L"├─┼─┤") == 5);
+	c_endw(stdout);
 	c_printf("\n");
 
 	EXPECT(c_dprintf(PRINT_DST_STD(), "└─┴─┘") == 5 * 3);
+	c_startw(stdout);
+	EXPECT(c_dwprintf(PRINT_DST_WSTD(), L"└─┴─┘") == 5);
+	c_endw(stdout);
 	c_printf("\n");
 
 	return ret;
@@ -72,6 +100,7 @@ int main()
 
 	EXPECT(t_mem_stats() == 0);
 	EXPECT(t_print() == 0);
+	EXPECT(t_wprint() == 0);
 	EXPECT(t_char() == 0);
 
 	return ret;
