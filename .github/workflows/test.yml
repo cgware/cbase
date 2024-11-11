@@ -1,0 +1,66 @@
+name: Test
+
+on:
+  push:
+    branches: [ "main" ]
+    paths-ignore:
+      - '**.md'
+
+  pull_request:
+    branches: [ "main" ]
+    paths-ignore:
+      - '**.md'
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  Ubuntu-Make:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        config: [Debug, Release]
+        arch: [x64, x86]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Make
+        run: make test CONFIG=${{ matrix.config }} ARCH=${{ matrix.arch }}
+
+      - name: Run
+        run: ./bin/${{matrix.configuration}}-${{matrix.platform}}/tests/test_cplatform/test_cplatform
+
+  Ubuntu-CMake:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        config: [Debug, Release]
+        arch: [x64, x86]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DARCH=${{ matrix.arch }}
+
+      - name: Run
+        run: cmake --build build --target test --config ${{ matrix.config }}
+
+  Windows-CMake:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        config: [Debug, Release]
+        arch: [x64, x86]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: cmake -S . -B build -A ${{ matrix.arch }} -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DARCH=${{ matrix.arch }}
+
+      - name: Run
+        run: cmake --build build --target run_tests --config ${{ matrix.config }}
