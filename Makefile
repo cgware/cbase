@@ -41,7 +41,7 @@ $(CBASE_OUTDIR)$(CBASE): $(CBASE_OBJ)
 
 $(CBASE_INTDIR)%.o: %.c $(CBASE_INCLUDE)
 	@mkdir -p $(@D)
-	@$(TCC) -m$(BITS) -c $(CBASE_INCLUDES) $(CFLAGS) -o $@ $< 
+	@$(TCC) -m$(BITS) -c $(CBASE_INCLUDES) $(CFLAGS) -o $@ $<
 
 CBASE_TEST_SRCDIR := test
 CBASE_TEST_SRC := $(wildcard ${CBASE_TEST_SRCDIR}/*.c)
