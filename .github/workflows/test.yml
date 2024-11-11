@@ -4,15 +4,17 @@ on:
   push:
     branches: [ "main" ]
     paths-ignore:
+      - '.github/**'
       - '**.md'
 
   pull_request:
     branches: [ "main" ]
     paths-ignore:
+      - '.github/**'
       - '**.md'
 
   workflow_dispatch:
 
 jobs:
   test:
-    uses: cgware/action-test/.github/workflows/action.yml@main
+    uses: cgware/workflows/.github/workflows/test.yml@main
