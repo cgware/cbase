@@ -23,7 +23,7 @@ CBASE_SRC := $(wildcard ${CBASE_SRCDIR}/*.c)
 CBASE_INCLUDE := $(wildcard include/*.h)
 CBASE_INCLUDE += $(wildcard ${CBASE_SRCDIR}/*.h)
 
-CBASE_OUTDIR := $(TOPDIR)bin/$(ARCH)-$(CONFIG)/cbase/
+CBASE_OUTDIR := $(TOPDIR)bin/cbase/$(ARCH)-$(CONFIG)/
 CBASE_INTDIR := $(CBASE_OUTDIR)int/
 CBASE_OBJ := $(patsubst %.c,$(CBASE_INTDIR)%.o,$(CBASE_SRC))
 CBASE_GCDA := $(patsubst %.o,%.gcda,$(CBASE_OBJ))
@@ -48,7 +48,7 @@ CBASE_TEST_SRC := $(wildcard ${CBASE_TEST_SRCDIR}/*.c)
 CBASE_TEST_INCLUDE := $(wildcard include/*.h)
 CBASE_TEST_INCLUDE += $(wildcard ${CBASE_TEST_SRCDIR}/*.h)
 
-CBASE_TEST_OUTDIR := $(TOPDIR)bin/$(ARCH)-$(CONFIG)/cbase_test/
+CBASE_TEST_OUTDIR := $(TOPDIR)bin/cbase_test/$(ARCH)-$(CONFIG)/
 CBASE_TEST_INTDIR := $(CBASE_TEST_OUTDIR)int/
 CBASE_TEST_OBJ := $(patsubst %.c,$(CBASE_TEST_INTDIR)%.o,$(CBASE_TEST_SRC))
 CBASE_TEST_GCDA := $(patsubst %.o,%.gcda,$(CBASE_TEST_OBJ))

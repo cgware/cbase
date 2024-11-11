@@ -24,8 +24,8 @@ file(GLOB_RECURSE cbase_src src/*.h src/*.c)
 add_library(cbase ${cbase_src})
 target_include_directories(cbase PUBLIC include)
 set_target_properties(cbase PROPERTIES
-	LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}/bin/cbase/${ARCH}-Debug/
-	LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/bin/cbase/${ARCH}-Release/
+	ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}/bin/cbase/${ARCH}-Debug/
+	ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/bin/cbase/${ARCH}-Release/
 	PREFIX ""
 )
 
@@ -50,9 +50,9 @@ if(NOT MSVC)
 	endif()
 endif()
 set_target_properties(cbase_test PROPERTIES
-	RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}/bin/cbase/${ARCH}-Debug/
-	RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/bin/cbase/${ARCH}-Release/
+	RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}/bin/cbase_test/${ARCH}-Debug/
+	RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/bin/cbase_test/${ARCH}-Release/
 )
 add_test(cbase_build "${CMAKE_COMMAND}" --build ${CMAKE_BINARY_DIR} --config ${CMAKE_BUILD_TYPE} --target cbase_test)
-add_test(cbase ${CMAKE_SOURCE_DIR}/bin/cbase/${ARCH}-${CMAKE_BUILD_TYPE}/cbase_test)
+add_test(cbase ${CMAKE_SOURCE_DIR}/bin/cbase_test/${ARCH}-${CMAKE_BUILD_TYPE}/cbase_test)
 set_tests_properties(cbase PROPERTIES DEPENDS cbase_build)
