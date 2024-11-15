@@ -29,10 +29,8 @@ int c_swprintv_cb(wprint_dst_t dst, const wchar_t *fmt, va_list args);
 int c_dwprintv(wprint_dst_t dst, const wchar_t *fmt, va_list args);
 int c_dwprintf(wprint_dst_t dst, const wchar_t *fmt, ...);
 
-// clang-format off
-#define PRINT_DST_WNONE() (wprint_dst_t) { 0 }
-#define PRINT_DST_WSTD() (wprint_dst_t) { .cb = c_wprintv_cb }
-#define PRINT_DST_WBUF(_wbuf, _size, _off) (wprint_dst_t) { .cb=c_swprintv_cb, .dst=_wbuf, .size=_size, .off=_off }
-// clang-format on
+#define PRINT_DST_WNONE()		   ((wprint_dst_t){0})
+#define PRINT_DST_WSTD()		   ((wprint_dst_t){.cb = c_wprintv_cb})
+#define PRINT_DST_WBUF(_wbuf, _size, _off) ((wprint_dst_t){.cb = c_swprintv_cb, .dst = _wbuf, .size = _size, .off = _off})
 
 #endif
