@@ -2,7 +2,13 @@
 
 #include "platform.h"
 
+#include <locale.h>
 #include <stdio.h>
+
+void c_print_init()
+{
+	setlocale(LC_ALL, "en_US.UTF-8");
+}
 
 int c_printv(const char *fmt, va_list args)
 {

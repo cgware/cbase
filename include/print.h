@@ -4,6 +4,8 @@
 #include <stdarg.h>
 #include <stddef.h>
 
+void c_print_init();
+
 int c_printv(const char *fmt, va_list args);
 int c_printf(const char *fmt, ...);
 

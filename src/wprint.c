@@ -10,7 +10,6 @@ void c_startw(void *file)
 {
 	FILE *f = (FILE *)file;
 	fflush(f);
-	setlocale(LC_ALL, "en_US.UTF-8");
 #if defined(C_WIN)
 	freopen_s(&f, NULL, "w", f);
 #else

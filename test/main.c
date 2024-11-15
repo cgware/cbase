@@ -106,6 +106,8 @@ int main()
 {
 	int ret = 0;
 
+	c_print_init();
+
 	EXPECT(t_mem_stats() == 0);
 	EXPECT(t_print() == 0);
 	EXPECT(t_wprint() == 0);
