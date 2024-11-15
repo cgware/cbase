@@ -20,6 +20,14 @@ static int t_mem_stats()
 
 	stats = mem_stats_get();
 
+	mem_stats_set(NULL);
+	mem_stats_alloc(1);
+	EXPECT(tmp.mem == 0);
+	mem_stats_realloc(1, 2);
+	EXPECT(tmp.mem == 0);
+	mem_stats_free(2);
+	EXPECT(tmp.mem == 0);
+
 	EXPECT(mem_stats_set(&tmp) == stats);
 	mem_stats_alloc(1);
 	EXPECT(tmp.mem == 1);

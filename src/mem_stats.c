@@ -9,6 +9,7 @@ const mem_stats_t *mem_stats_set(mem_stats_t *stats)
 	const mem_stats_t *tmp = s_stats;
 
 	s_stats = stats;
+
 	return tmp;
 }
 
@@ -19,6 +20,10 @@ const mem_stats_t *mem_stats_get()
 
 void mem_stats_alloc(size_t size)
 {
+	if (s_stats == NULL) {
+		return;
+	}
+
 	s_stats->mem += size;
 	s_stats->peak = MAX(s_stats->mem, s_stats->peak);
 	s_stats->total += size;
@@ -27,13 +32,22 @@ void mem_stats_alloc(size_t size)
 
 void mem_stats_realloc(size_t old_size, size_t new_size)
 {
+	if (s_stats == NULL) {
+		return;
+	}
+
 	s_stats->mem += new_size - old_size;
 	s_stats->peak = MAX(s_stats->mem, s_stats->peak);
-	s_stats->total += new_size - old_size;
+	s_stats->total -= old_size;
+	s_stats->total += new_size;
 	s_stats->reallocs++;
 }
 
 void mem_stats_free(size_t size)
 {
+	if (s_stats == NULL) {
+		return;
+	}
+
 	s_stats->mem -= size;
 }
