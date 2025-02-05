@@ -1,54 +1,43 @@
-CBASE_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+PKGNAME := cbase
+CBASE_HEADERS := $(PKGINC_H)
+CBASE_INCLUDES := $(PKGINCDIR)
 
-CBASE_SRC := $(CBASE_DIR)src/
-CBASE_C := $(wildcard $(CBASE_SRC)*.c)
-CBASE_H := $(wildcard $(CBASE_SRC)*.h)
-CBASE_HEADERS := $(wildcard $(CBASE_DIR)include/*.h)
-
-CBASE_OUTDIR := $(BUILDDIR)bin/$(ARCH)-$(CONFIG)/cbase
-CBASE_INTDIR := $(CBASE_OUTDIR)/int/
-CBASE_OBJ := $(patsubst $(CBASE_SRC)%.c,$(CBASE_INTDIR)%.o,$(CBASE_C))
-CBASE_GCDA := $(patsubst %.o,%.gcda,$(CBASE_OBJ))
-
-CBASE_INCLUDES := -I$(CBASE_DIR)include/
-
-CBASE := $(CBASE_OUTDIR)/cbase.a
+CBASE_SRC := $(PKGSRCDIR)
+CBASE_H := $(PKGSRC_H)
+CBASE_INTDIR := $(INTSRCDIR)
+CBASE_OBJ := $(PKGSRC_OBJ)
+CBASE_GCDA := $(PKGSRC_GCDA)
+CBASE := $(PKGLIB)
 
 .PHONY: cbase
 cbase: $(CBASE)
 
 $(CBASE): $(CBASE_OBJ)
 	@mkdir -p $(@D)
-	@ar rcs $@ $(CBASE_OBJ)
+	ar rcs $@ $(CBASE_OBJ)
 
 $(CBASE_INTDIR)%.o: $(CBASE_SRC)%.c $(CBASE_H) $(CBASE_HEADERS)
 	@mkdir -p $(@D)
-	@$(TCC) -m$(BITS) -c -I$(CBASE_SRC) $(CBASE_INCLUDES) $(CFLAGS) -o $@ $<
+	$(TCC) -m$(BITS) -c $(patsubst %,-I%,$(CBASE_SRC) $(CBASE_INCLUDES)) $(CFLAGS) -o $@ $<
 
-CBASE_TEST_SRC := $(CBASE_DIR)test/
-CBASE_TEST_C := $(wildcard $(CBASE_TEST_SRC)*.c)
-CBASE_TEST_H := $(wildcard $(CBASE_TEST_SRC)*.h)
-CBASE_TEST_HEADERS := $(CBASE_HEADERS)
-
-CBASE_TEST_OUTDIR := $(BUILDIR)bin/$(ARCH)-$(CONFIG)/cbase_test
-CBASE_TEST_INTDIR := $(CBASE_TEST_OUTDIR)/int/
-CBASE_TEST_OBJ := $(patsubst $(CBASE_TEST_SRC)%.c,$(CBASE_TEST_INTDIR)%.o,$(CBASE_TEST_C))
-CBASE_TEST_GCDA := $(patsubst %.o,%.gcda,$(CBASE_TEST_OBJ))
-
-CBASE_TEST_INCLUDES :=  $(CBASE_INCLUDES)
 CBASE_TEST_LIBS := $(CBASE)
 
-CBASE_TEST := $(CBASE_TEST_OUTDIR)/cbase_test
+CBASE_TEST_SRC := $(PKGTESTDIR)
+CBASE_TEST_H := $(PKGTEST_H)
+CBASE_TEST_INTDIR := $(INTTESTDIR)
+CBASE_TEST_OBJ := $(PKGTEST_OBJ)
+CBASE_TEST_GCDA := $(PKGTEST_GCDA)
+CBASE_TEST := $(PKGTEST)
 
 .PHONY: cbase_test
 cbase_test: $(CBASE_TEST)
 	@rm -rf $(CBASE_GCDA) $(CBASE_TEST_GCDA)
-	@$(CBASE_TEST)
+	$(CBASE_TEST)
 
 $(CBASE_TEST): $(CBASE_TEST_OBJ) $(CBASE_TEST_LIBS)
 	@mkdir -p $(@D)
-	@$(TCC) -m$(BITS) $(LDFLAGS) -o $@ $(CBASE_TEST_OBJ) $(patsubst %,-L%,$(dir $(CBASE_TEST_LIBS))) $(patsubst %,-l:%,$(notdir $(CBASE_TEST_LIBS)))
+	$(TCC) -m$(BITS) $(LDFLAGS) -o $@ $(CBASE_TEST_OBJ) -L$(LIBSDIR) $(patsubst %,-l:%,$(notdir $(CBASE_TEST_LIBS)))
 
-$(CBASE_TEST_INTDIR)%.o: $(CBASE_TEST_SRC)%.c $(CBASE_TEST_H) $(CBASE_TEST_HEADERS)
+$(CBASE_TEST_INTDIR)%.o: $(CBASE_TEST_SRC)%.c $(CBASE_TEST_H) $(CBASE_HEADERS)
 	@mkdir -p $(@D)
-	@$(TCC) -m$(BITS) -c -I$(CBASE_TEST_SRC) $(CBASE_TEST_INCLUDES) $(CFLAGS) -o $@ $<
+	$(TCC) -m$(BITS) -c $(patsubst %,-I%,$(CBASE_TEST_SRC) $(CBASE_INCLUDES)) $(CFLAGS) -o $@ $<
