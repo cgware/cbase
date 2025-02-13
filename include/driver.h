@@ -17,7 +17,7 @@ extern driver_t _drv_end;
 	#define DRIVER_END   &_drv_end
 #else
 	#define DRIVER(_name, _type, _data)                                                                                                \
-		static driver_t _drv_##_name __attribute__((aligned(4))) __attribute__((unused))                                                  \
+		static driver_t _drv_##_name __attribute__((aligned(4))) __attribute__((unused))                                           \
 		__attribute__((__section__("drv"))) = {.type = _type, .data = _data}
 
 extern driver_t __start_drv[];
