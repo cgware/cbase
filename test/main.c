@@ -7,7 +7,7 @@
 
 #define EXPECT(_check)                                                                                                                     \
 	if (!(_check)) {                                                                                                                   \
-		printf("\033[31m%s\033[0m\n", #_check);                                                                                    \
+		printf("\033[31m%s:%d: %s\033[0m\n", __FILE__, __LINE__, #_check);                                                         \
 		ret = 1;                                                                                                                   \
 	}
 
@@ -46,14 +46,14 @@ static int t_print()
 	int ret	    = 0;
 	char buf[1] = {0};
 
-	EXPECT(c_printf(NULL) == 0);
+	EXPECT(c_printf(NULL) == -1);
 
 	EXPECT(c_sprintf(buf, sizeof(buf), 0, "") == 0);
-	EXPECT(c_sprintv(NULL, 0, 0, NULL, NULL) == 0);
+	EXPECT(c_sprintv(NULL, 0, 0, NULL, NULL) == -1);
 	EXPECT(c_dprintf(PRINT_DST_NONE(), NULL) == 0);
 #ifdef C_LINUX
 	char cbuf[2] = {0};
-	EXPECT(c_dprintf(PRINT_DST_BUF(cbuf, sizeof(cbuf), 0), "abc") == 0);
+	EXPECT(c_dprintf(PRINT_DST_BUF(cbuf, sizeof(cbuf), 0), "abc") == -1);
 #endif
 
 	return ret;
@@ -64,14 +64,14 @@ static int t_wprint()
 	int ret	       = 0;
 	wchar_t buf[1] = {0};
 
-	EXPECT(c_wprintf(NULL) == 0);
+	EXPECT(c_wprintf(NULL) == -1);
 
 	EXPECT(c_swprintf(buf, sizeof(buf), 0, L"") == 0);
-	EXPECT(c_swprintv(NULL, 0, 0, NULL, NULL) == 0);
+	EXPECT(c_swprintv(NULL, 0, 0, NULL, NULL) == -1);
 	EXPECT(c_dwprintf(PRINT_DST_WNONE(), NULL) == 0);
 #ifdef C_LINUX
 	wchar_t cbuf[2] = {0};
-	EXPECT(c_dwprintf(PRINT_DST_WBUF(cbuf, sizeof(cbuf), 0), L"abc") == 0);
+	EXPECT(c_dwprintf(PRINT_DST_WBUF(cbuf, sizeof(cbuf), 0), L"abc") == -1);
 #endif
 
 	return ret;

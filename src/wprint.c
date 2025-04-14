@@ -31,7 +31,7 @@ void c_endw(void *file)
 int c_wprintv(const wchar_t *fmt, va_list args)
 {
 	if (fmt == NULL) {
-		return 0;
+		return -1;
 	}
 
 	va_list copy;
@@ -53,7 +53,7 @@ int c_wprintf(const wchar_t *fmt, ...)
 int c_swprintv(wchar_t *buf, size_t size, int off, const wchar_t *fmt, va_list args)
 {
 	if ((buf == NULL && size > 0) || off * sizeof(wchar_t) > size || fmt == NULL) {
-		return 0;
+		return -1;
 	}
 
 	buf = buf == NULL ? buf : &buf[off];
@@ -72,7 +72,7 @@ int c_swprintv(wchar_t *buf, size_t size, int off, const wchar_t *fmt, va_list a
 	va_end(copy);
 
 	if (size > 0 && (size_t)ret > size - off) {
-		return 0;
+		return -1;
 	}
 #endif
 	return ret;

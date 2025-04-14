@@ -13,7 +13,7 @@ void c_print_init()
 int c_printv(const char *fmt, va_list args)
 {
 	if (fmt == NULL) {
-		return 0;
+		return -1;
 	}
 
 	va_list copy;
@@ -35,7 +35,7 @@ int c_printf(const char *fmt, ...)
 int c_sprintv(char *buf, size_t size, int off, const char *fmt, va_list args)
 {
 	if ((buf == NULL && size > 0) || off * sizeof(char) > size || fmt == NULL) {
-		return 0;
+		return -1;
 	}
 
 	buf = buf == NULL ? buf : &buf[off];
@@ -54,7 +54,7 @@ int c_sprintv(char *buf, size_t size, int off, const char *fmt, va_list args)
 	ret = vsnprintf(buf, size / sizeof(char) - off, fmt, copy);
 	va_end(copy);
 	if (size > 0 && (size_t)ret > size - off) {
-		return 0;
+		return -1;
 	}
 #endif
 	return ret;
