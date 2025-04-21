@@ -1,6 +1,7 @@
 #include "mem_stats.h"
 #include "platform.h"
 #include "print.h"
+#include "type.h"
 #include "wprint.h"
 
 #include <stdio.h>
@@ -102,6 +103,30 @@ static int t_char()
 	return ret;
 }
 
+static int t_type()
+{
+	int ret = 0;
+
+	EXPECT(sizeof(S8_MIN) == 1);
+	EXPECT(sizeof(S8_MAX) == 1);
+	EXPECT(sizeof(U8_MIN) == 1);
+	EXPECT(sizeof(U8_MAX) == 1);
+	EXPECT(sizeof(S16_MIN) == 2);
+	EXPECT(sizeof(S16_MAX) == 2);
+	EXPECT(sizeof(U16_MIN) == 2);
+	EXPECT(sizeof(U16_MAX) == 2);
+	EXPECT(sizeof(S32_MIN) == 4);
+	EXPECT(sizeof(S32_MAX) == 4);
+	EXPECT(sizeof(U32_MIN) == 4);
+	EXPECT(sizeof(U32_MAX) == 4);
+	EXPECT(sizeof(S64_MIN) == 8);
+	EXPECT(sizeof(S64_MAX) == 8);
+	EXPECT(sizeof(U64_MIN) == 8);
+	EXPECT(sizeof(U64_MAX) == 8);
+
+	return ret;
+}
+
 int main()
 {
 	int ret = 0;
@@ -112,6 +137,7 @@ int main()
 	EXPECT(t_print() == 0);
 	EXPECT(t_wprint() == 0);
 	EXPECT(t_char() == 0);
+	EXPECT(t_type() == 0);
 
 	return ret;
 }
