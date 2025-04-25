@@ -1,5 +1,6 @@
-#include "mem_stats.h"
 #include "cfs.h"
+#include "ctime.h"
+#include "mem_stats.h"
 #include "platform.h"
 #include "print.h"
 #include "type.h"
@@ -238,6 +239,44 @@ static int t_cfs_ls()
 	return ret;
 }
 
+static int t_ctime_sleep()
+{
+	int ret = 0;
+
+	u64 start, end;
+
+	start = c_time();
+
+	c_sleep(1000);
+
+	end = c_time();
+
+	u64 eps = end - start - 1000;
+
+	EXPECT(eps < 162, 1);
+
+	return ret;
+}
+
+static int t_ctime_str()
+{
+	int ret = 0;
+
+	char buf[CTIME_BUF_SIZE] = {0};
+
+	c_time_str(NULL);
+	c_time_str(buf);
+
+	EXPECT(buf[4], '-');
+	EXPECT(buf[7], '-');
+	EXPECT(buf[10], ' ');
+	EXPECT(buf[13], ':');
+	EXPECT(buf[16], ':');
+	EXPECT(buf[19], '.');
+
+	return ret;
+}
+
 static int t_print()
 {
 	int ret	    = 0;
@@ -329,9 +368,11 @@ int main()
 
 	c_print_init();
 
-	EXPECT(t_mem_stats(), 0);
 	EXPECT(t_cfs(), 0);
 	EXPECT(t_cfs_ls(), 0);
+	EXPECT(t_ctime_sleep(), 0);
+	EXPECT(t_ctime_str(), 0);
+	EXPECT(t_mem_stats(), 0);
 	EXPECT(t_print(), 0);
 	EXPECT(t_wprint(), 0);
 	EXPECT(t_char(), 0);
