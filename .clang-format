@@ -1,6 +1,7 @@
 ---
 AlignConsecutiveAssignments: true
 AlignConsecutiveMacros: true
+AllowShortCaseLabelsOnASingleLine: true
 AllowShortEnumsOnASingleLine: false
 AllowShortFunctionsOnASingleLine: None
 AllowShortLoopsOnASingleLine: false
