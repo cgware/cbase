@@ -1,7 +1,6 @@
 #ifndef TYPE_H
 #define TYPE_H
 
-#include <stdbool.h>
 #include <stdint.h>
 
 typedef int8_t s8;
