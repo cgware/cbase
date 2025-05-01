@@ -50,7 +50,7 @@ int c_wprintf(const wchar_t *fmt, ...)
 	return ret;
 }
 
-int c_swprintv(wchar_t *buf, size_t size, int off, const wchar_t *fmt, va_list args)
+int c_swprintv(wchar_t *buf, size_t size, size_t off, const wchar_t *fmt, va_list args)
 {
 	if ((buf == NULL && size > 0) || off * sizeof(wchar_t) > size || fmt == NULL) {
 		return -1;
@@ -62,56 +62,25 @@ int c_swprintv(wchar_t *buf, size_t size, int off, const wchar_t *fmt, va_list a
 	va_copy(copy, args);
 	int ret;
 #if defined(C_WIN)
-	#pragma warning(push)
 	#pragma warning(disable : 6387)
 	ret = vswprintf_s(buf, size / sizeof(wchar_t) - off, fmt, copy);
-	#pragma warning(push)
+	#pragma warning(default : 6387)
 	va_end(copy);
 #else
 	ret = vswprintf(buf, size / sizeof(wchar_t) - off, fmt, copy);
 	va_end(copy);
-
-	if (size > 0 && (size_t)ret > size - off) {
+	if (size > 0 && (size_t)ret > size / sizeof(wchar_t) - off) {
 		return -1;
 	}
 #endif
 	return ret;
 }
 
-int c_swprintf(wchar_t *buf, size_t size, int off, const wchar_t *fmt, ...)
+int c_swprintf(wchar_t *buf, size_t size, size_t off, const wchar_t *fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
 	int ret = c_swprintv(buf, size, off, fmt, args);
-	va_end(args);
-	return ret;
-}
-
-int c_wprintv_cb(wprint_dst_t dst, const wchar_t *fmt, va_list args)
-{
-	(void)dst;
-	return c_wprintv(fmt, args);
-}
-
-int c_swprintv_cb(wprint_dst_t dst, const wchar_t *fmt, va_list args)
-{
-	return c_swprintv((wchar_t *)dst.dst, dst.size, dst.off, fmt, args);
-}
-
-int c_dwprintv(wprint_dst_t dst, const wchar_t *fmt, va_list args)
-{
-	if (dst.cb == NULL) {
-		return 0;
-	}
-
-	return dst.cb(dst, fmt, args);
-}
-
-int c_dwprintf(wprint_dst_t dst, const wchar_t *fmt, ...)
-{
-	va_list args;
-	va_start(args, fmt);
-	int ret = c_dwprintv(dst, fmt, args);
 	va_end(args);
 	return ret;
 }

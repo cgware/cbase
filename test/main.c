@@ -1,9 +1,11 @@
 #include "cfs.h"
 #include "ctime.h"
+#include "dst.h"
 #include "mem_stats.h"
 #include "platform.h"
 #include "print.h"
 #include "type.h"
+#include "wdst.h"
 #include "wprint.h"
 
 #include <stdio.h>
@@ -277,6 +279,31 @@ static int t_ctime_str()
 	return ret;
 }
 
+static int t_dst()
+{
+	int ret	    = 0;
+	char buf[2] = {0};
+
+	EXPECT(dputs(DST_NONE(), STRV_NULL), 0);
+	EXPECT(dputf(DST_NONE(), NULL), 0);
+
+	EXPECT(dputs(DST_BUF(buf), STRV_NULL), 0);
+	EXPECT(dputs(DST_BUF(buf), STRV("a")), 1);
+	EXPECT(buf[0], 'a');
+	EXPECT(dputs(DST_BUF(buf), STRV("bb")), 0);
+	EXPECT(dputs(DST_BUF(buf), STRV("ccc")), 0);
+
+	EXPECT(dputf(DST_BUF(buf), NULL), 0);
+	EXPECT(dputf(DST_BUF(buf), "d"), 1);
+	EXPECT(buf[0], 'd');
+#ifdef C_LINUX
+	EXPECT(dputf(DST_BUF(buf), "ee"), 2);
+	EXPECT(dputf(DST_BUF(buf), "fff"), 0);
+#endif
+
+	return ret;
+}
+
 static int t_print()
 {
 	int ret	    = 0;
@@ -286,10 +313,30 @@ static int t_print()
 
 	EXPECT(c_sprintf(buf, sizeof(buf), 0, ""), 0);
 	EXPECT(c_sprintv(NULL, 0, 0, NULL, NULL), -1);
-	EXPECT(c_dprintf(PRINT_DST_NONE(), NULL), 0);
+
+	return ret;
+}
+
+static int t_wdst()
+{
+	int ret	       = 0;
+	wchar_t buf[2] = {0};
+
+	EXPECT(wdputs(WDST_NONE(), WSTRV_NULL), 0);
+	EXPECT(wdputf(WDST_NONE(), NULL), 0);
+
+	EXPECT(wdputs(WDST_BUF(buf), WSTRV_NULL), 0);
+	EXPECT(wdputs(WDST_BUF(buf), WSTRV(L"a")), 1);
+	EXPECT(buf[0], L'a');
+	EXPECT(wdputs(WDST_BUF(buf), WSTRV(L"bb")), 0);
+	EXPECT(wdputs(WDST_BUF(buf), WSTRV(L"ccc")), 0);
+
+	EXPECT(wdputf(WDST_BUF(buf), NULL), 0);
+	EXPECT(wdputf(WDST_BUF(buf), L"d"), 1);
+	EXPECT(buf[0], 'd');
 #ifdef C_LINUX
-	char cbuf[2] = {0};
-	EXPECT(c_dprintf(PRINT_DST_BUF(cbuf, sizeof(cbuf), 0), "abc"), -1);
+	EXPECT(wdputf(WDST_BUF(buf), L"ee"), 0);
+	EXPECT(wdputf(WDST_BUF(buf), L"fff"), 0);
 #endif
 
 	return ret;
@@ -304,11 +351,6 @@ static int t_wprint()
 
 	EXPECT(c_swprintf(buf, sizeof(buf), 0, L""), 0);
 	EXPECT(c_swprintv(NULL, 0, 0, NULL, NULL), -1);
-	EXPECT(c_dwprintf(PRINT_DST_WNONE(), NULL), 0);
-#ifdef C_LINUX
-	wchar_t cbuf[2] = {0};
-	EXPECT(c_dwprintf(PRINT_DST_WBUF(cbuf, sizeof(cbuf), 0), L"abc"), -1);
-#endif
 
 	return ret;
 }
@@ -317,21 +359,21 @@ static int t_char()
 {
 	int ret = 0;
 
-	EXPECT(c_dprintf(PRINT_DST_STD(), "┌─┬─┐"), 5 * 3);
+	EXPECT(dputs(DST_STD(), STRV("┌─┬─┐")), 5 * 3);
 	c_startw(stdout);
-	EXPECT(c_dwprintf(PRINT_DST_WSTD(), L"\u250C\u2500\u252C\u2500\u2510"), 5);
+	EXPECT(wdputs(WDST_STD(), WSTRV(L"\u250C\u2500\u252C\u2500\u2510")), 5);
 	c_endw(stdout);
 	c_printf("\n");
 
-	EXPECT(c_dprintf(PRINT_DST_STD(), "├─┼─┤"), 5 * 3);
+	EXPECT(dputf(DST_STD(), "├─┼─┤"), 5 * 3);
 	c_startw(stdout);
-	EXPECT(c_dwprintf(PRINT_DST_WSTD(), L"\u251C\u2500\u253C\u2500\u2524"), 5);
+	EXPECT(wdputf(WDST_STD(), L"\u251C\u2500\u253C\u2500\u2524"), 5);
 	c_endw(stdout);
 	c_printf("\n");
 
-	EXPECT(c_dprintf(PRINT_DST_STD(), "└─┴─┘"), 5 * 3);
+	EXPECT(dputf(DST_STD(), "└─┴─┘"), 5 * 3);
 	c_startw(stdout);
-	EXPECT(c_dwprintf(PRINT_DST_WSTD(), L"\u2514\u2500\u2534\u2500\u2518"), 5);
+	EXPECT(wdputf(WDST_STD(), L"\u2514\u2500\u2534\u2500\u2518"), 5);
 	c_endw(stdout);
 	c_printf("\n");
 
@@ -368,12 +410,14 @@ int main()
 
 	c_print_init();
 
+	EXPECT(t_mem_stats(), 0);
 	EXPECT(t_cfs(), 0);
 	EXPECT(t_cfs_ls(), 0);
 	EXPECT(t_ctime_sleep(), 0);
 	EXPECT(t_ctime_str(), 0);
-	EXPECT(t_mem_stats(), 0);
+	EXPECT(t_dst(), 0);
 	EXPECT(t_print(), 0);
+	EXPECT(t_wdst(), 0);
 	EXPECT(t_wprint(), 0);
 	EXPECT(t_char(), 0);
 	EXPECT(t_type(), 0);
