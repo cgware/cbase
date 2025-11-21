@@ -58,8 +58,13 @@ static int t_cproc()
 {
 	int ret = 0;
 
+#ifdef C_WIN
+	EXPECT(cproc_system("cmd /c exit 0"), 0);
+	EXPECT(cproc_system("cmd /c exit 1"), 1);
+#else
 	EXPECT(cproc_system("true"), 0);
 	EXPECT(cproc_system("false"), 1);
+#endif
 
 	return ret;
 }
