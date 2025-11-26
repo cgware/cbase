@@ -1,5 +1,6 @@
-#include "cproc.h"
+#include "cerr.h"
 #include "cfs.h"
+#include "cproc.h"
 #include "ctime.h"
 #include "dst.h"
 #include "mem_stats.h"
@@ -50,6 +51,15 @@ static int t_mem_stats()
 	EXPECT(tmp.mem, 0);
 
 	mem_stats_set((mem_stats_t *)stats);
+
+	return ret;
+}
+
+static int t_cerr()
+{
+	int ret = 0;
+
+	cerr_str(CERR_UNKNOWN + 1);
 
 	return ret;
 }
@@ -427,6 +437,7 @@ int main()
 	c_print_init();
 
 	EXPECT(t_mem_stats(), 0);
+	EXPECT(t_cerr(), 0);
 	EXPECT(t_cproc(), 0);
 	EXPECT(t_cfs(), 0);
 	EXPECT(t_cfs_ls(), 0);
