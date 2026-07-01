@@ -7,7 +7,7 @@
 #include <time.h>
 
 #if defined(C_WIN)
-	#include <Windows.h>
+	#include <windows.h>
 #else
 	#include <sys/time.h>
 	#include <unistd.h>
@@ -66,16 +66,28 @@ const char *c_time_str(char *buf)
 	return buf;
 }
 
-int c_sleep(u32 milliseconds)
+int c_sleep(u32 ms)
 {
 #if defined(C_WIN)
-	Sleep((DWORD)milliseconds);
+	Sleep((DWORD)ms);
 	return 0;
 #else
 	struct timeval tv;
-	tv.tv_sec  = milliseconds / 1000;
-	tv.tv_usec = milliseconds % 1000 * 1000;
+	tv.tv_sec  = ms / 1000;
+	tv.tv_usec = ms % 1000 * 1000;
 	select(0, NULL, NULL, NULL, &tv);
 	return 0;
+#endif
+}
+
+int c_timer(u32 ms)
+{
+#if defined(C_LINUX)
+	struct itimerval tv = {0};
+	tv.it_value.tv_sec  = (long)(ms / 1000);
+	tv.it_value.tv_usec = (long)((ms % 1000) * 1000);
+	return setitimer(ITIMER_REAL, &tv, NULL);
+#else
+	return 1;
 #endif
 }

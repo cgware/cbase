@@ -1,12 +1,13 @@
 #include "cfs.h"
 
+#include "cerr.h"
 #include "platform.h"
 
 #include <errno.h>
 #include <stdio.h>
 
 #if defined(C_WIN)
-	#include <Windows.h>
+	#include <windows.h>
 #else
 	#include <dirent.h>
 	#include <sys/stat.h>
@@ -321,6 +322,21 @@ cerr_t cfs_getcwd(char *path, size_t size)
 	}
 #endif
 	return CERR_OK;
+}
+
+cerr_t cfs_unlink(const char *path)
+{
+	cerr_t ret = CERR_UNKNOWN;
+
+#if defined(C_LINUX)
+	if (unlink(path) < 0) {
+		ret = CERR_UNKNOWN;
+	}
+#else
+	ret = CERR_UNSUPPORTED;
+#endif
+
+	return ret;
 }
 
 cerr_t cfs_lsdir_begin(const char *path, void **it, char *name, size_t size)

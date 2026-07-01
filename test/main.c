@@ -1,6 +1,7 @@
 #include "cerr.h"
 #include "cfs.h"
 #include "cproc.h"
+#include "csock.h"
 #include "ctime.h"
 #include "dst.h"
 #include "mem_stats.h"
@@ -24,6 +25,57 @@
 
 #define TEST_DIR  "t_cfs_tmp"
 #define TEST_FILE "t_cfs_file.txt"
+
+static size_t cstrlen(const char *cstr)
+{
+	size_t len = 0;
+	while (*cstr++) {
+		len++;
+	}
+	return len;
+}
+
+static void t_alarm(int sig)
+{
+	(void)sig;
+}
+
+static int t_set_alarm(size_t ms)
+{
+	if (cproc_setalarm(t_alarm)) {
+		return 1;
+	}
+	return c_timer(ms);
+}
+
+static int t_fill_socket(void *sock)
+{
+	int flags;
+	if (csock_get_flags(sock, &flags) != CERR_OK || csock_set_flags(sock, flags | 04000) != CERR_OK) {
+		return 1;
+	}
+
+	u8 buf[4096] = {0};
+	for (;;) {
+		cerr_t err = csock_write(sock, buf, sizeof(buf), NULL);
+		if (err == CERR_OK) {
+			continue;
+		}
+		if (err == CERR_AGAIN) {
+			break;
+		}
+		if (err != CERR_INTERRUPT) {
+			csock_set_flags(sock, flags);
+			return 1;
+		}
+	}
+
+	if (csock_set_flags(sock, flags) != CERR_OK) {
+		return 1;
+	}
+
+	return 0;
+}
 
 static int t_mem_stats()
 {
@@ -71,6 +123,8 @@ static int t_cproc()
 #ifdef C_WIN
 	EXPECT(cproc_system("cmd /c exit 0"), 0);
 	EXPECT(cproc_system("cmd /c exit 1"), 1);
+	EXPECT(cproc_getpid(), 0);
+	EXPECT(cproc_setalarm(t_alarm), 1);
 #else
 	EXPECT(cproc_system("true"), 0);
 	EXPECT(cproc_system("false"), 1);
@@ -172,6 +226,9 @@ static int t_cfs()
 	EXPECT(cfs_getcwd(buf, 0), CERR_VAL);
 	EXPECT(cfs_getcwd(buf, 1), CERR_MEM);
 	EXPECT(cfs_getcwd(buf, sizeof(buf)), CERR_OK);
+#ifdef C_WIN
+	EXPECT(cfs_unlink(TEST_FILE), CERR_UNSUPPORTED);
+#endif
 
 	return ret;
 }
@@ -267,6 +324,163 @@ static int t_cfs_ls()
 	return ret;
 }
 
+static int t_csock()
+{
+	int ret = 0;
+
+#if defined(C_LINUX)
+	void *server, *client, *peer, *other, *refused_server, *refused_client, *bad;
+	char path[108];
+	char refused_path[108];
+	u8 buf[8] = {0};
+	size_t n;
+	int flags;
+
+	bad = (void *)-1;
+
+	c_sprintf(path, sizeof(path), 0, "/tmp/cbase_%ld.sock", (long)cproc_getpid());
+	c_sprintf(refused_path, sizeof(refused_path), 0, "/tmp/cbase_refused_%ld.sock", (long)cproc_getpid());
+	cfs_unlink(path);
+	cfs_unlink(refused_path);
+
+	EXPECT(csock_open(-1, -1, -1, NULL), CERR_VAL);
+	EXPECT(csock_open(-1, -1, -1, &server), CERR_VAL);
+	EXPECT(csock_open(CSOCK_FAMILY_UNIX, -1, -1, &server), CERR_VAL);
+	EXPECT(csock_open(CSOCK_FAMILY_UNIX, CSOCK_TYPE_STREAM, -1, &server), CERR_PROTO);
+	EXPECT(csock_open(CSOCK_FAMILY_UNIX, CSOCK_TYPE_STREAM, 0, &server), CERR_OK);
+	EXPECT(csock_open(CSOCK_FAMILY_UNIX, CSOCK_TYPE_STREAM, 0, &client), CERR_OK);
+	EXPECT(csock_open(CSOCK_FAMILY_UNIX, CSOCK_TYPE_STREAM, 0, &other), CERR_OK);
+	EXPECT(csock_accept(other, &peer), CERR_STATE);
+	EXPECT(csock_read(other, buf, 1, &n), CERR_STATE);
+	EXPECT(csock_write(other, buf, 1, &n), CERR_CONN);
+	EXPECT(csock_close(other), CERR_OK);
+
+	EXPECT(csock_bind(server, -1, NULL, 0), CERR_VAL);
+	EXPECT(csock_bind(server, -1, "", 0), CERR_VAL);
+	EXPECT(csock_bind(bad, CSOCK_FAMILY_UNIX, path, cstrlen(path) + 1), CERR_DESC);
+	EXPECT(csock_bind(server, CSOCK_FAMILY_UNIX, path, cstrlen(path) + 1), CERR_OK);
+	EXPECT(csock_open(CSOCK_FAMILY_UNIX, CSOCK_TYPE_STREAM, 0, &other), CERR_OK);
+	EXPECT(csock_bind(other, CSOCK_FAMILY_UNIX, path, cstrlen(path) + 1), CERR_EXIST);
+	EXPECT(csock_close(other), CERR_OK);
+
+	EXPECT(csock_listen(NULL, 0), CERR_VAL);
+	EXPECT(csock_listen(bad, 1), CERR_DESC);
+	EXPECT(csock_listen(server, 1), CERR_OK);
+	EXPECT(csock_read(server, buf, 1, &n), CERR_STATE);
+	EXPECT(csock_get_flags(server, &flags), CERR_OK);
+	EXPECT(csock_set_flags(server, flags | 04000), CERR_OK);
+	EXPECT(csock_accept(server, &peer), CERR_AGAIN);
+	EXPECT(csock_set_flags(server, flags), CERR_OK);
+
+	EXPECT(csock_connect(client, -1, NULL, 0), CERR_VAL);
+	EXPECT(csock_connect(client, -1, "", 0), CERR_VAL);
+	EXPECT(csock_connect(bad, CSOCK_FAMILY_UNIX, path, cstrlen(path) + 1), CERR_DESC);
+	EXPECT(csock_open(CSOCK_FAMILY_UNIX, CSOCK_TYPE_STREAM, 0, &refused_client), CERR_OK);
+	EXPECT(csock_connect(refused_client, CSOCK_FAMILY_UNIX, refused_path, cstrlen(refused_path) + 1), CERR_NOT_FOUND);
+	EXPECT(csock_close(refused_client), CERR_OK);
+	EXPECT(csock_open(CSOCK_FAMILY_UNIX, CSOCK_TYPE_STREAM, 0, &refused_server), CERR_OK);
+	EXPECT(csock_bind(refused_server, CSOCK_FAMILY_UNIX, refused_path, cstrlen(refused_path) + 1), CERR_OK);
+	EXPECT(csock_close(refused_server), CERR_OK);
+	EXPECT(csock_open(CSOCK_FAMILY_UNIX, CSOCK_TYPE_STREAM, 0, &refused_client), CERR_OK);
+	EXPECT(csock_connect(refused_client, CSOCK_FAMILY_UNIX, refused_path, cstrlen(refused_path) + 1), CERR_CONN);
+	EXPECT(csock_close(refused_client), CERR_OK);
+	cfs_unlink(refused_path);
+	EXPECT(csock_connect(client, CSOCK_FAMILY_UNIX, path, cstrlen(path) + 1), CERR_OK);
+
+	EXPECT(csock_accept(NULL, NULL), CERR_VAL);
+	EXPECT(csock_accept(bad, &peer), CERR_DESC);
+	EXPECT(csock_accept(server, &peer), CERR_OK);
+
+	EXPECT(csock_write(NULL, NULL, 0, NULL), CERR_VAL);
+	EXPECT(csock_write(bad, buf, 1, &n), CERR_DESC);
+	buf[0] = 0x12;
+	n      = 0;
+	EXPECT(csock_write(client, buf, 1, &n), CERR_OK);
+	EXPECT(n, 1);
+
+	EXPECT(csock_read(NULL, NULL, 0, NULL), CERR_VAL);
+	EXPECT(csock_read(bad, buf, 1, &n), CERR_DESC);
+	buf[0] = 0;
+	n      = 0;
+	EXPECT(csock_read(peer, buf, 1, &n), CERR_OK);
+	EXPECT(n, 1);
+	EXPECT(buf[0], 0x12);
+
+	EXPECT(t_set_alarm(1), 0);
+	EXPECT(csock_read(peer, buf, 1, &n), CERR_INTERRUPT);
+
+	csock_get_flags(peer, &flags);
+	EXPECT(flags >= 0, 1);
+	EXPECT(csock_set_flags(peer, flags | 04000), CERR_OK);
+	EXPECT(csock_read(peer, buf, 1, &n), CERR_AGAIN);
+	EXPECT(csock_set_flags(peer, flags), CERR_OK);
+
+	EXPECT(csock_setopt(NULL, CSOCK_OPT_SNDBUF, NULL, 0), CERR_VAL);
+	int size = 4096;
+	EXPECT(csock_setopt(client, CSOCK_OPT_SNDBUF, NULL, sizeof(size)), CERR_VAL);
+	EXPECT(csock_setopt(bad, -1, &size, sizeof(size)), CERR_VAL);
+	EXPECT(csock_setopt(bad, CSOCK_OPT_SNDBUF, &size, sizeof(size)), CERR_DESC);
+	EXPECT(csock_setopt(client, CSOCK_OPT_SNDBUF, &size, sizeof(size)), CERR_OK);
+
+	EXPECT(csock_get_flags(NULL, NULL), CERR_VAL);
+	EXPECT(csock_get_flags(bad, &flags), CERR_DESC);
+
+	EXPECT(csock_set_flags(NULL, 0), CERR_VAL);
+	EXPECT(csock_set_flags(bad, 0), CERR_DESC);
+
+	EXPECT(t_fill_socket(client), 0);
+	EXPECT(t_set_alarm(1), 0);
+	EXPECT(csock_write(client, buf, 1, &n), CERR_INTERRUPT);
+
+	EXPECT(csock_close(NULL), CERR_VAL);
+	EXPECT(csock_close(bad), CERR_DESC);
+	EXPECT(csock_close(peer), CERR_OK);
+	EXPECT(csock_close(client), CERR_OK);
+	EXPECT(csock_close(server), CERR_OK);
+	cfs_unlink(path);
+
+#else
+	void *sock = (void *)1;
+	void *peer;
+	int flags = 0;
+	int size = 4096;
+	u8 buf[1] = {0};
+	size_t n;
+
+	EXPECT(csock_open(CSOCK_FAMILY_UNIX, CSOCK_TYPE_STREAM, 0, NULL), CERR_VAL);
+	EXPECT(csock_open(CSOCK_FAMILY_UNIX, CSOCK_TYPE_STREAM, 0, &sock), CERR_UNSUPPORTED);
+	EXPECT(csock_close(NULL), CERR_VAL);
+	EXPECT(csock_close(sock), CERR_UNSUPPORTED);
+	EXPECT(csock_setopt(NULL, CSOCK_OPT_SNDBUF, &size, sizeof(size)), CERR_VAL);
+	EXPECT(csock_setopt(sock, CSOCK_OPT_SNDBUF, NULL, sizeof(size)), CERR_VAL);
+	EXPECT(csock_setopt(sock, CSOCK_OPT_SNDBUF, &size, sizeof(size)), CERR_UNSUPPORTED);
+	EXPECT(csock_get_flags(NULL, &flags), CERR_VAL);
+	EXPECT(csock_get_flags(sock, NULL), CERR_VAL);
+	EXPECT(csock_get_flags(sock, &flags), CERR_UNSUPPORTED);
+	EXPECT(csock_set_flags(NULL, flags), CERR_VAL);
+	EXPECT(csock_set_flags(sock, flags), CERR_UNSUPPORTED);
+	EXPECT(csock_bind(NULL, CSOCK_FAMILY_UNIX, "sock", 5), CERR_VAL);
+	EXPECT(csock_bind(sock, CSOCK_FAMILY_UNIX, NULL, 5), CERR_VAL);
+	EXPECT(csock_bind(sock, CSOCK_FAMILY_UNIX, "sock", 5), CERR_UNSUPPORTED);
+	EXPECT(csock_listen(NULL, 1), CERR_VAL);
+	EXPECT(csock_listen(sock, 1), CERR_UNSUPPORTED);
+	EXPECT(csock_connect(NULL, CSOCK_FAMILY_UNIX, "sock", 5), CERR_VAL);
+	EXPECT(csock_connect(sock, CSOCK_FAMILY_UNIX, NULL, 5), CERR_VAL);
+	EXPECT(csock_connect(sock, CSOCK_FAMILY_UNIX, "sock", 5), CERR_UNSUPPORTED);
+	EXPECT(csock_accept(NULL, &peer), CERR_VAL);
+	EXPECT(csock_accept(sock, NULL), CERR_VAL);
+	EXPECT(csock_accept(sock, &peer), CERR_UNSUPPORTED);
+	EXPECT(csock_write(NULL, buf, sizeof(buf), &n), CERR_VAL);
+	EXPECT(csock_write(sock, NULL, sizeof(buf), &n), CERR_VAL);
+	EXPECT(csock_write(sock, buf, sizeof(buf), &n), CERR_UNSUPPORTED);
+	EXPECT(csock_read(NULL, buf, sizeof(buf), &n), CERR_VAL);
+	EXPECT(csock_read(sock, NULL, sizeof(buf), &n), CERR_VAL);
+	EXPECT(csock_read(sock, buf, sizeof(buf), &n), CERR_UNSUPPORTED);
+#endif
+
+	return ret;
+}
+
 static int t_ctime_sleep()
 {
 	int ret = 0;
@@ -276,6 +490,9 @@ static int t_ctime_sleep()
 	start = c_time();
 
 	c_sleep(1000);
+#ifdef C_WIN
+	EXPECT(c_timer(1), 1);
+#endif
 
 	end = c_time();
 
@@ -337,6 +554,7 @@ static int t_print()
 
 	EXPECT(c_printf(NULL), -1);
 
+	EXPECT(c_sprintf(NULL, 0, 0, ""), 0);
 	EXPECT(c_sprintf(buf, sizeof(buf), 0, ""), 0);
 	EXPECT(c_sprintv(NULL, 0, 0, NULL, NULL), -1);
 
@@ -441,6 +659,7 @@ int main()
 	EXPECT(t_cproc(), 0);
 	EXPECT(t_cfs(), 0);
 	EXPECT(t_cfs_ls(), 0);
+	EXPECT(t_csock(), 0);
 	EXPECT(t_ctime_sleep(), 0);
 	EXPECT(t_ctime_str(), 0);
 	EXPECT(t_dst(), 0);

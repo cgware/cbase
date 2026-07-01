@@ -24,6 +24,8 @@ cerr_t cfs_rmfile(const char *path);
 
 cerr_t cfs_getcwd(char *path, size_t size);
 
+cerr_t cfs_unlink(const char *path);
+
 cerr_t cfs_lsdir_begin(const char *path, void **it, char *name, size_t size);
 cerr_t cfs_lsdir_next(void **it, char *name, size_t size);
 int cfs_lsdir_end(void **it);
