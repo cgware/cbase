@@ -28,6 +28,24 @@ int cproc_getpid()
 #endif
 }
 
+const char *cproc_getenv(const char *name)
+{
+#if defined(C_LINUX)
+	return getenv(name);
+#else
+	return NULL;
+#endif
+}
+
+int cproc_gethostname(char *name, size_t len)
+{
+#if defined(C_LINUX)
+	return gethostname(name, len);
+#else
+	return NULL;
+#endif
+}
+
 int cproc_setalarm(alarm_cb cb)
 {
 #if defined(C_LINUX)

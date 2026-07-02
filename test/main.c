@@ -119,15 +119,25 @@ static int t_cerr()
 static int t_cproc()
 {
 	int ret = 0;
+	char hostname[256] = {0};
 
 #ifdef C_WIN
 	EXPECT(cproc_system("cmd /c exit 0"), 0);
 	EXPECT(cproc_system("cmd /c exit 1"), 1);
 	EXPECT(cproc_getpid(), 0);
+	EXPECT(cproc_getenv("PATH"), NULL);
+	EXPECT(cproc_gethostname(hostname, sizeof(hostname)), 0);
 	EXPECT(cproc_setalarm(t_alarm), 1);
 #else
+	const char *path;
+
 	EXPECT(cproc_system("true"), 0);
 	EXPECT(cproc_system("false"), 1);
+	path = cproc_getenv("PATH");
+	EXPECT(path != NULL, 1);
+	EXPECT(cproc_getenv("CBASE_TEST_ENV_DOES_NOT_EXIST_8B1E0D7243D44783"), NULL);
+	EXPECT(cproc_gethostname(hostname, sizeof(hostname)), 0);
+	EXPECT(cstrlen(hostname) > 0, 1);
 #endif
 
 	return ret;
@@ -357,6 +367,7 @@ static int t_csock()
 
 	EXPECT(csock_bind(server, -1, NULL, 0), CERR_VAL);
 	EXPECT(csock_bind(server, -1, "", 0), CERR_VAL);
+	EXPECT(csock_bind(server, CSOCK_FAMILY_UNIX, path, sizeof(path) + 1), CERR_VAL);
 	EXPECT(csock_bind(bad, CSOCK_FAMILY_UNIX, path, cstrlen(path) + 1), CERR_DESC);
 	EXPECT(csock_bind(server, CSOCK_FAMILY_UNIX, path, cstrlen(path) + 1), CERR_OK);
 	EXPECT(csock_open(CSOCK_FAMILY_UNIX, CSOCK_TYPE_STREAM, 0, &other), CERR_OK);
@@ -374,6 +385,7 @@ static int t_csock()
 
 	EXPECT(csock_connect(client, -1, NULL, 0), CERR_VAL);
 	EXPECT(csock_connect(client, -1, "", 0), CERR_VAL);
+	EXPECT(csock_connect(client, CSOCK_FAMILY_UNIX, path, sizeof(path) + 1), CERR_VAL);
 	EXPECT(csock_connect(bad, CSOCK_FAMILY_UNIX, path, cstrlen(path) + 1), CERR_DESC);
 	EXPECT(csock_open(CSOCK_FAMILY_UNIX, CSOCK_TYPE_STREAM, 0, &refused_client), CERR_OK);
 	EXPECT(csock_connect(refused_client, CSOCK_FAMILY_UNIX, refused_path, cstrlen(refused_path) + 1), CERR_NOT_FOUND);
