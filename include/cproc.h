@@ -6,6 +6,8 @@
 int cproc_system(const char *cmd);
 int cproc_getpid();
 const char *cproc_getenv(const char *name);
+int cproc_setenv(const char *name, const char *val, int overwrite);
+int cproc_unsetenv(const char *name);
 int cproc_gethostname(char *name, size_t len);
 
 typedef void (*alarm_cb)(int sig);

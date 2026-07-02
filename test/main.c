@@ -35,6 +35,18 @@ static size_t cstrlen(const char *cstr)
 	return len;
 }
 
+static int cstreq(const char *a, const char *b)
+{
+	if (!a || !b) {
+		return a == b;
+	}
+	while (*a && *a == *b) {
+		a++;
+		b++;
+	}
+	return *a == *b;
+}
+
 static void t_alarm(int sig)
 {
 	(void)sig;
@@ -120,12 +132,12 @@ static int t_cproc()
 {
 	int ret = 0;
 	char hostname[256] = {0};
+	const char *env = "CBASE_TEST_ENV_8B1E0D7243D44783";
 
 #ifdef C_WIN
 	EXPECT(cproc_system("cmd /c exit 0"), 0);
 	EXPECT(cproc_system("cmd /c exit 1"), 1);
 	EXPECT(cproc_getpid(), 0);
-	EXPECT(cproc_getenv("PATH"), NULL);
 	EXPECT(cproc_gethostname(hostname, sizeof(hostname)), 0);
 	EXPECT(cproc_setalarm(t_alarm), 1);
 #else
@@ -139,6 +151,17 @@ static int t_cproc()
 	EXPECT(cproc_gethostname(hostname, sizeof(hostname)), 0);
 	EXPECT(cstrlen(hostname) > 0, 1);
 #endif
+
+	EXPECT(cproc_unsetenv(env), 0);
+	EXPECT(cproc_getenv(env), NULL);
+	EXPECT(cproc_setenv(env, "one", 0), 0);
+	EXPECT(cstreq(cproc_getenv(env), "one"), 1);
+	EXPECT(cproc_setenv(env, "two", 0), 0);
+	EXPECT(cstreq(cproc_getenv(env), "one"), 1);
+	EXPECT(cproc_setenv(env, "two", 1), 0);
+	EXPECT(cstreq(cproc_getenv(env), "two"), 1);
+	EXPECT(cproc_unsetenv(env), 0);
+	EXPECT(cproc_getenv(env), NULL);
 
 	return ret;
 }

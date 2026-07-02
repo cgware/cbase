@@ -32,8 +32,39 @@ const char *cproc_getenv(const char *name)
 {
 #if defined(C_LINUX)
 	return getenv(name);
+#elif defined(C_WIN)
+	return getenv(name);
 #else
 	return NULL;
+#endif
+}
+
+int cproc_setenv(const char *name, const char *val, int overwrite)
+{
+#if defined(C_LINUX)
+	return setenv(name, val, overwrite);
+#elif defined(C_WIN)
+	if (!overwrite && getenv(name) != NULL) {
+		return 0;
+	}
+	return _putenv_s(name, val);
+#else
+	(void)name;
+	(void)val;
+	(void)overwrite;
+	return 1;
+#endif
+}
+
+int cproc_unsetenv(const char *name)
+{
+#if defined(C_LINUX)
+	return unsetenv(name);
+#elif defined(C_WIN)
+	return _putenv_s(name, "");
+#else
+	(void)name;
+	return 1;
 #endif
 }
 
