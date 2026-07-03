@@ -9,6 +9,7 @@ typedef struct driver_s {
 #if defined(_MSC_VER)
 	#define DRIVER_STR2(x) #x
 	#define DRIVER_STR1(x) DRIVER_STR2(x)
+	#define DRIVER_ALIGN   __declspec(align(16))
 
 	#ifdef _WIN64
 		#define DRIVER_SYM_PREFIX ""
@@ -17,7 +18,7 @@ typedef struct driver_s {
 	#endif
 
 	#define DRIVER(_name, _type, _data)                                                                                                \
-		__pragma(section(".drv$u", read)) __declspec(allocate(".drv$u")) __declspec(align(16)) driver_t _drv_##_name = {           \
+		__pragma(section(".drv$u", read)) __declspec(allocate(".drv$u")) DRIVER_ALIGN driver_t _drv_##_name = {                    \
 			.type = _type, .data = _data} __pragma(comment(linker, "/include:" DRIVER_SYM_PREFIX "_drv_" DRIVER_STR1(_name)))
 
 extern driver_t _drv_start;
@@ -26,8 +27,7 @@ extern driver_t _drv_end;
 	#define DRIVER_START &_drv_start
 	#define DRIVER_END   &_drv_end
 #else
-	#define DRIVER(_name, _type, _data)                                                                                                \
-		driver_t _drv_##_name __attribute__((__section__("drv"))) __attribute__((aligned(16))) = {.type = _type, .data = _data}
+	#define DRIVER(_name, _type, _data) driver_t _drv_##_name __attribute__((__section__("drv"))) = {.type = _type, .data = _data}
 
 extern driver_t __start_drv[];
 extern driver_t __stop_drv[];
