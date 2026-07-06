@@ -133,6 +133,8 @@ static int t_cproc()
 	int ret = 0;
 	char hostname[256] = {0};
 	const char *env = "CBASE_TEST_ENV_8B1E0D7243D44783";
+	void *lib = NULL;
+	void *sym = NULL;
 
 #ifdef C_WIN
 	EXPECT(cproc_system("cmd /c exit 0"), 0);
@@ -140,6 +142,15 @@ static int t_cproc()
 	EXPECT(cproc_getpid(), 0);
 	EXPECT(cproc_gethostname(hostname, sizeof(hostname)), 0);
 	EXPECT(cproc_setalarm(t_alarm), 1);
+	EXPECT(cproc_dlopen("kernel32.dll", NULL), 1);
+	EXPECT(cproc_dlopen("kernel32.dll", &lib), 0);
+	EXPECT(lib != NULL, 1);
+	EXPECT(cproc_dlsym(NULL, "GetCurrentProcessId", &sym), 1);
+	EXPECT(cproc_dlsym(lib, "GetCurrentProcessId", NULL), 1);
+	EXPECT(cproc_dlsym(lib, "CBASE_TEST_SYMBOL_DOES_NOT_EXIST_8B1E0D7243D44783", &sym), 1);
+	EXPECT(sym, NULL);
+	EXPECT(cproc_dlsym(lib, "GetCurrentProcessId", &sym), 0);
+	EXPECT(sym != NULL, 1);
 #else
 	const char *path;
 
@@ -150,6 +161,11 @@ static int t_cproc()
 	EXPECT(cproc_getenv("CBASE_TEST_ENV_DOES_NOT_EXIST_8B1E0D7243D44783"), NULL);
 	EXPECT(cproc_gethostname(hostname, sizeof(hostname)), 0);
 	EXPECT(cstrlen(hostname) > 0, 1);
+	EXPECT(cproc_dlopen("libc.so.6", NULL), 1);
+	EXPECT(cproc_dlopen("libc.so.6", &lib), 1);
+	EXPECT(lib, NULL);
+	EXPECT(cproc_dlsym(NULL, "getpid", &sym), 1);
+	EXPECT(cproc_dlsym(lib, "getpid", &sym), 1);
 #endif
 
 	EXPECT(cproc_unsetenv(env), 0);
