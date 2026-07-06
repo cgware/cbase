@@ -137,6 +137,21 @@ int cproc_dlsym(void *lib, const char *name, void **sym)
 	return *sym == NULL;
 }
 
+int cproc_dlclose(void *lib)
+{
+	if (lib == NULL) {
+		return 1;
+	}
+
+#if defined(C_WIN)
+	return !FreeLibrary(lib);
+#elif defined(C_LINUX)
+	return dlclose(lib);
+#else
+	return 1;
+#endif
+}
+
 int cproc_setalarm(alarm_cb cb)
 {
 #if defined(C_LINUX)

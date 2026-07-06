@@ -152,6 +152,8 @@ static int t_cproc()
 	EXPECT(sym, NULL);
 	EXPECT(cproc_dlsym(lib, "GetCurrentProcessId", &sym), 0);
 	EXPECT(sym != NULL, 1);
+	EXPECT(cproc_dlclose(NULL), 1);
+	EXPECT(cproc_dlclose(lib), 0);
 #else
 	const char *path;
 
@@ -170,6 +172,8 @@ static int t_cproc()
 	EXPECT(sym, NULL);
 	EXPECT(cproc_dlsym(lib, "getpid", &sym), 0);
 	EXPECT(sym != NULL, 1);
+	EXPECT(cproc_dlclose(NULL), 1);
+	EXPECT(cproc_dlclose(lib), 0);
 #endif
 
 	EXPECT(cproc_unsetenv(env), 0);

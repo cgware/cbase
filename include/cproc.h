@@ -14,6 +14,7 @@ int cproc_unsetenv(const char *name);
 
 int cproc_dlopen(const char *name, void **lib);
 int cproc_dlsym(void *lib, const char *name, void **sym);
+int cproc_dlclose(void *lib);
 
 typedef void (*alarm_cb)(int sig);
 int cproc_setalarm(alarm_cb cb);
