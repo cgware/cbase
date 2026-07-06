@@ -7,8 +7,13 @@
 #if defined(C_WIN)
 	#include <windows.h>
 #else
+	#include <dlfcn.h>
 	#include <sys/wait.h>
 	#include <unistd.h>
+#endif
+
+#if defined(C_WIN)
+static char cproc_env[32767];
 #endif
 
 int cproc_system(const char *cmd)
@@ -26,6 +31,8 @@ int cproc_getpid()
 {
 #if defined(C_LINUX)
 	return getpid();
+#elif defined(C_WIN)
+	return (int)GetCurrentProcessId();
 #else
 	return 0;
 #endif
@@ -35,8 +42,13 @@ int cproc_gethostname(char *name, size_t len)
 {
 #if defined(C_LINUX)
 	return gethostname(name, len);
+#elif defined(C_WIN)
+	DWORD size = (DWORD)len;
+	return !GetComputerNameA(name, &size);
 #else
-	return NULL;
+	(void)name;
+	(void)len;
+	return 1;
 #endif
 }
 
@@ -45,7 +57,14 @@ const char *cproc_getenv(const char *name)
 #if defined(C_LINUX)
 	return getenv(name);
 #elif defined(C_WIN)
-	return getenv(name);
+	DWORD len;
+
+	SetLastError(ERROR_SUCCESS);
+	len = GetEnvironmentVariableA(name, cproc_env, sizeof(cproc_env));
+	if ((len == 0 && GetLastError() != ERROR_SUCCESS) || len >= sizeof(cproc_env)) {
+		return NULL;
+	}
+	return cproc_env;
 #else
 	return NULL;
 #endif
@@ -56,7 +75,7 @@ int cproc_setenv(const char *name, const char *val, int overwrite)
 #if defined(C_LINUX)
 	return setenv(name, val, overwrite);
 #elif defined(C_WIN)
-	if (!overwrite && getenv(name) != NULL) {
+	if (!overwrite && cproc_getenv(name) != NULL) {
 		return 0;
 	}
 	return _putenv_s(name, val);
@@ -88,6 +107,8 @@ int cproc_dlopen(const char *name, void **lib)
 
 #if defined(C_WIN)
 	*lib = LoadLibraryA(name);
+#elif defined(C_LINUX)
+	*lib = dlopen(name, RTLD_LAZY);
 #else
 	(void)name;
 	*lib = NULL;
@@ -104,6 +125,10 @@ int cproc_dlsym(void *lib, const char *name, void **sym)
 
 #if defined(C_WIN)
 	*sym = GetProcAddress(lib, name);
+#elif defined(C_LINUX)
+	dlerror();
+	*sym = dlsym(lib, name);
+	return dlerror() != NULL;
 #else
 	(void)name;
 	*sym = NULL;

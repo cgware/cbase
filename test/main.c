@@ -11,14 +11,15 @@
 #include "wdst.h"
 #include "wprint.h"
 
+#include <inttypes.h>
 #include <stdio.h>
 
 #define EXPECT(_act, _exp)                                                                                                                 \
 	do {                                                                                                                               \
-		unsigned long _actual = (unsigned long)(_act);                                                                             \
-		unsigned long _expect = (unsigned long)(_exp);                                                                             \
+		uintptr_t _actual = (uintptr_t)(_act);                                                                                     \
+		uintptr_t _expect = (uintptr_t)(_exp);                                                                                     \
 		if (_actual != _expect) {                                                                                                  \
-			printf("\033[31m%s:%d: %lX != %lX\033[0m\n", __FILE__, __LINE__, _actual, _expect);                                \
+			printf("\033[31m%s:%d: %" PRIXPTR " != %" PRIXPTR "\033[0m\n", __FILE__, __LINE__, _actual, _expect);            \
 			ret = 1;                                                                                                           \
 		}                                                                                                                          \
 	} while (0)
@@ -52,7 +53,7 @@ static void t_alarm(int sig)
 	(void)sig;
 }
 
-static int t_set_alarm(size_t ms)
+static int t_set_alarm(u32 ms)
 {
 	if (cproc_setalarm(t_alarm)) {
 		return 1;
@@ -139,7 +140,7 @@ static int t_cproc()
 #ifdef C_WIN
 	EXPECT(cproc_system("cmd /c exit 0"), 0);
 	EXPECT(cproc_system("cmd /c exit 1"), 1);
-	EXPECT(cproc_getpid(), 0);
+	EXPECT(cproc_getpid() > 0, 1);
 	EXPECT(cproc_gethostname(hostname, sizeof(hostname)), 0);
 	EXPECT(cproc_setalarm(t_alarm), 1);
 	EXPECT(cproc_dlopen("kernel32.dll", NULL), 1);
@@ -162,10 +163,13 @@ static int t_cproc()
 	EXPECT(cproc_gethostname(hostname, sizeof(hostname)), 0);
 	EXPECT(cstrlen(hostname) > 0, 1);
 	EXPECT(cproc_dlopen("libc.so.6", NULL), 1);
-	EXPECT(cproc_dlopen("libc.so.6", &lib), 1);
-	EXPECT(lib, NULL);
+	EXPECT(cproc_dlopen("libc.so.6", &lib), 0);
+	EXPECT(lib != NULL, 1);
 	EXPECT(cproc_dlsym(NULL, "getpid", &sym), 1);
-	EXPECT(cproc_dlsym(lib, "getpid", &sym), 1);
+	EXPECT(cproc_dlsym(lib, "CBASE_TEST_SYMBOL_DOES_NOT_EXIST_8B1E0D7243D44783", &sym), 1);
+	EXPECT(sym, NULL);
+	EXPECT(cproc_dlsym(lib, "getpid", &sym), 0);
+	EXPECT(sym != NULL, 1);
 #endif
 
 	EXPECT(cproc_unsetenv(env), 0);
