@@ -134,47 +134,50 @@ static int t_cproc()
 	int ret = 0;
 	char hostname[256] = {0};
 	const char *env = "CBASE_TEST_ENV_8B1E0D7243D44783";
+	const char *system_ok;
+	const char *system_fail;
+	const char *lib_name;
+	const char *sym_name;
+	int alarm_ret;
 	void *lib = NULL;
+	void *main = NULL;
 	void *sym = NULL;
 
 #ifdef C_WIN
-	EXPECT(cproc_system("cmd /c exit 0"), 0);
-	EXPECT(cproc_system("cmd /c exit 1"), 1);
+	system_ok   = "cmd /c exit 0";
+	system_fail = "cmd /c exit 1";
+	lib_name    = "kernel32.dll";
+	sym_name    = "GetCurrentProcessId";
+	alarm_ret   = 1;
+#else
+	system_ok   = "true";
+	system_fail = "false";
+	lib_name    = "libc.so.6";
+	sym_name    = "getpid";
+	alarm_ret   = 0;
+#endif
+
+	EXPECT(cproc_system(system_ok), 0);
+	EXPECT(cproc_system(system_fail), 1);
 	EXPECT(cproc_getpid() > 0, 1);
 	EXPECT(cproc_gethostname(hostname, sizeof(hostname)), 0);
-	EXPECT(cproc_setalarm(t_alarm), 1);
-	EXPECT(cproc_dlopen("kernel32.dll", NULL), 1);
-	EXPECT(cproc_dlopen("kernel32.dll", &lib), 0);
-	EXPECT(lib != NULL, 1);
-	EXPECT(cproc_dlsym(NULL, "GetCurrentProcessId", &sym), 1);
-	EXPECT(cproc_dlsym(lib, "GetCurrentProcessId", NULL), 1);
-	EXPECT(cproc_dlsym(lib, "CBASE_TEST_SYMBOL_DOES_NOT_EXIST_8B1E0D7243D44783", &sym), 1);
-	EXPECT(sym, NULL);
-	EXPECT(cproc_dlsym(lib, "GetCurrentProcessId", &sym), 0);
-	EXPECT(sym != NULL, 1);
-	EXPECT(cproc_dlclose(NULL), 1);
-	EXPECT(cproc_dlclose(lib), 0);
-#else
-	const char *path;
-
-	EXPECT(cproc_system("true"), 0);
-	EXPECT(cproc_system("false"), 1);
-	path = cproc_getenv("PATH");
-	EXPECT(path != NULL, 1);
-	EXPECT(cproc_getenv("CBASE_TEST_ENV_DOES_NOT_EXIST_8B1E0D7243D44783"), NULL);
-	EXPECT(cproc_gethostname(hostname, sizeof(hostname)), 0);
 	EXPECT(cstrlen(hostname) > 0, 1);
-	EXPECT(cproc_dlopen("libc.so.6", NULL), 1);
-	EXPECT(cproc_dlopen("libc.so.6", &lib), 0);
+	EXPECT(cproc_setalarm(t_alarm), alarm_ret);
+	EXPECT(cproc_getenv("CBASE_TEST_ENV_DOES_NOT_EXIST_8B1E0D7243D44783"), NULL);
+	EXPECT(cproc_dlopen(lib_name, NULL), 1);
+	EXPECT(cproc_dlmain(NULL), 1);
+	EXPECT(cproc_dlmain(&main), 0);
+	EXPECT(main != NULL, 1);
+	EXPECT(cproc_dlopen(lib_name, &lib), 0);
 	EXPECT(lib != NULL, 1);
-	EXPECT(cproc_dlsym(NULL, "getpid", &sym), 1);
+	EXPECT(cproc_dlsym(NULL, sym_name, &sym), 1);
+	EXPECT(cproc_dlsym(lib, sym_name, NULL), 1);
 	EXPECT(cproc_dlsym(lib, "CBASE_TEST_SYMBOL_DOES_NOT_EXIST_8B1E0D7243D44783", &sym), 1);
 	EXPECT(sym, NULL);
-	EXPECT(cproc_dlsym(lib, "getpid", &sym), 0);
+	EXPECT(cproc_dlsym(lib, sym_name, &sym), 0);
 	EXPECT(sym != NULL, 1);
 	EXPECT(cproc_dlclose(NULL), 1);
 	EXPECT(cproc_dlclose(lib), 0);
-#endif
 
 	EXPECT(cproc_unsetenv(env), 0);
 	EXPECT(cproc_getenv(env), NULL);

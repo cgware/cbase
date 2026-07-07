@@ -117,6 +117,23 @@ int cproc_dlopen(const char *name, void **lib)
 	return *lib == NULL;
 }
 
+int cproc_dlmain(void **lib)
+{
+	if (lib == NULL) {
+		return 1;
+	}
+
+#if defined(C_WIN)
+	*lib = GetModuleHandleA(NULL);
+#elif defined(C_LINUX)
+	*lib = dlopen(NULL, RTLD_LAZY);
+#else
+	*lib = NULL;
+#endif
+
+	return *lib == NULL;
+}
+
 int cproc_dlsym(void *lib, const char *name, void **sym)
 {
 	if (lib == NULL || sym == NULL) {
