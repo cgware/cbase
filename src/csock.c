@@ -4,7 +4,7 @@
 #include "platform.h"
 
 #include <errno.h>
-#include <stddef.h>
+#include <stdint.h>
 #include <string.h>
 
 #if defined(C_LINUX)
@@ -12,6 +12,18 @@
 	#include <sys/socket.h>
 	#include <sys/un.h>
 	#include <unistd.h>
+#endif
+
+#if defined(C_LINUX)
+static void *csock_from_fd(int fd)
+{
+	return (void *)((uintptr_t)fd + 1);
+}
+
+static int csock_to_fd(void *sock)
+{
+	return (int)((uintptr_t)sock - 1);
+}
 #endif
 
 cerr_t csock_open(csock_family_t family, csock_type_t type, int protocol, void **sock)
@@ -45,8 +57,8 @@ cerr_t csock_open(csock_family_t family, csock_type_t type, int protocol, void *
 		case EPROTONOSUPPORT: ret = CERR_PROTO; break;
 		}
 	} else {
-		*(size_t *)sock = fd;
-		ret		= CERR_OK;
+		*sock = csock_from_fd(fd);
+		ret   = CERR_OK;
 	}
 
 #else
@@ -65,7 +77,7 @@ cerr_t csock_close(void *sock)
 
 #if defined(C_LINUX)
 	errno = 0;
-	if (close((size_t)sock) < 0) {
+	if (close(csock_to_fd(sock)) < 0) {
 		int e = errno;
 		switch (e) {
 		case EBADF: ret = CERR_DESC; break;
@@ -95,7 +107,7 @@ cerr_t csock_setopt(void *sock, csock_opt_t opt, void *val, size_t size)
 	}
 
 	errno = 0;
-	if (setsockopt((size_t)sock, SOL_SOCKET, name, val, size) < 0) {
+	if (setsockopt(csock_to_fd(sock), SOL_SOCKET, name, val, size) < 0) {
 		int e = errno;
 		switch (e) {
 		case EBADF: ret = CERR_DESC; break;
@@ -120,7 +132,7 @@ cerr_t csock_get_flags(void *sock, int *flags)
 
 #if defined(C_LINUX)
 	errno = 0;
-	int f = fcntl((size_t)sock, F_GETFL, 0);
+	int f = fcntl(csock_to_fd(sock), F_GETFL, 0);
 	if (f < 0) {
 		int e = errno;
 		switch (e) {
@@ -147,7 +159,7 @@ cerr_t csock_set_flags(void *sock, int flags)
 
 #if defined(C_LINUX)
 	errno = 0;
-	if (fcntl((size_t)sock, F_SETFL, flags) < 0) {
+	if (fcntl(csock_to_fd(sock), F_SETFL, flags) < 0) {
 		int e = errno;
 		switch (e) {
 		case EBADF: ret = CERR_DESC; break;
@@ -186,7 +198,7 @@ cerr_t csock_bind(void *sock, csock_family_t family, const char *path, size_t le
 	memcpy(addr.sun_path, path, len);
 
 	errno = 0;
-	if (bind((size_t)sock, (const struct sockaddr *)&addr, sizeof(addr)) < 0) {
+	if (bind(csock_to_fd(sock), (const struct sockaddr *)&addr, sizeof(addr)) < 0) {
 		int e = errno;
 		switch (e) {
 		case EBADF: ret = CERR_DESC; break;
@@ -212,7 +224,7 @@ cerr_t csock_listen(void *sock, int n)
 
 #if defined(C_LINUX)
 	errno = 0;
-	if (listen((size_t)sock, n) < 0) {
+	if (listen(csock_to_fd(sock), n) < 0) {
 		int e = errno;
 		switch (e) {
 		case EBADF: ret = CERR_DESC; break;
@@ -251,7 +263,7 @@ cerr_t csock_connect(void *sock, csock_family_t family, const char *path, size_t
 	memcpy(addr.sun_path, path, len);
 
 	errno = 0;
-	if (connect((size_t)sock, (const struct sockaddr *)&addr, sizeof(addr)) < 0) {
+	if (connect(csock_to_fd(sock), (const struct sockaddr *)&addr, sizeof(addr)) < 0) {
 		int e = errno;
 		switch (e) {
 		case EBADF: ret = CERR_DESC; break;
@@ -278,7 +290,7 @@ cerr_t csock_accept(void *sock, void **fd)
 
 #if defined(C_LINUX)
 	errno = 0;
-	int f = accept((size_t)sock, NULL, NULL);
+	int f = accept(csock_to_fd(sock), NULL, NULL);
 	if (f < 0) {
 		int e = errno;
 		switch (e) {
@@ -287,8 +299,8 @@ cerr_t csock_accept(void *sock, void **fd)
 		case EINVAL: ret = CERR_STATE; break;
 		}
 	} else {
-		*(size_t *)fd = f;
-		ret	      = CERR_OK;
+		*fd = csock_from_fd(f);
+		ret = CERR_OK;
 	}
 #else
 	ret = CERR_UNSUPPORTED;
@@ -307,7 +319,7 @@ cerr_t csock_write(void *sock, const void *data, size_t size, size_t *n)
 
 #if defined(C_LINUX)
 	errno	  = 0;
-	ssize_t w = write((size_t)sock, data, size);
+	ssize_t w = write(csock_to_fd(sock), data, size);
 	if (w < 0) {
 		int e = errno;
 		switch (e) {
@@ -341,7 +353,7 @@ cerr_t csock_read(void *sock, void *data, size_t size, size_t *n)
 
 #if defined(C_LINUX)
 	errno	  = 0;
-	ssize_t r = read((size_t)sock, data, size);
+	ssize_t r = read(csock_to_fd(sock), data, size);
 	if (r < 0) {
 		int e = errno;
 		switch (e) {
