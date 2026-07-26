@@ -13,7 +13,7 @@ void c_startw(void *file)
 #if defined(C_WIN)
 	freopen_s(&f, NULL, "w", f);
 #else
-	f = freopen(NULL, "w", f);
+	f   = freopen(NULL, "w", f);
 #endif
 }
 
@@ -24,7 +24,7 @@ void c_endw(void *file)
 #if defined(C_WIN)
 	freopen_s(&f, NULL, "w", f);
 #else
-	f = freopen(NULL, "w", f);
+	f   = freopen(NULL, "w", f);
 #endif
 }
 

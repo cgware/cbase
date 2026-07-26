@@ -13,13 +13,14 @@
 
 #include <inttypes.h>
 #include <stdio.h>
+#include <wchar.h>
 
 #define EXPECT(_act, _exp)                                                                                                                 \
 	do {                                                                                                                               \
 		uintptr_t _actual = (uintptr_t)(_act);                                                                                     \
 		uintptr_t _expect = (uintptr_t)(_exp);                                                                                     \
 		if (_actual != _expect) {                                                                                                  \
-			printf("\033[31m%s:%d: %" PRIXPTR " != %" PRIXPTR "\033[0m\n", __FILE__, __LINE__, _actual, _expect);            \
+			printf("\033[31m%s:%d: %" PRIXPTR " != %" PRIXPTR "\033[0m\n", __FILE__, __LINE__, _actual, _expect);              \
 			ret = 1;                                                                                                           \
 		}                                                                                                                          \
 	} while (0)
@@ -131,17 +132,17 @@ static int t_cerr()
 
 static int t_cproc()
 {
-	int ret = 0;
+	int ret		   = 0;
 	char hostname[256] = {0};
-	const char *env = "CBASE_TEST_ENV_8B1E0D7243D44783";
+	const char *env	   = "CBASE_TEST_ENV_8B1E0D7243D44783";
 	const char *system_ok;
 	const char *system_fail;
 	const char *lib_name;
 	const char *sym_name;
 	int alarm_ret;
-	void *lib = NULL;
+	void *lib  = NULL;
 	void *main = NULL;
-	void *sym = NULL;
+	void *sym  = NULL;
 
 #ifdef C_WIN
 	system_ok   = "cmd /c exit 0";
@@ -502,10 +503,10 @@ static int t_csock()
 	cfs_unlink(path);
 
 #else
-	void *sock = (void *)1;
+	void *sock  = (void *)1;
 	void *peer;
 	int flags = 0;
-	int size = 4096;
+	int size  = 4096;
 	u8 buf[1] = {0};
 	size_t n;
 
@@ -587,7 +588,7 @@ static int t_ctime_str()
 static int t_dst()
 {
 	int ret	    = 0;
-	char buf[2] = {0};
+	char buf[3] = {0};
 
 	EXPECT(dputs(DST_NONE(), STRV_NULL), 0);
 	EXPECT(dputf(DST_NONE(), NULL), 0);
@@ -595,30 +596,50 @@ static int t_dst()
 	EXPECT(dputs(DST_BUF(buf), STRV_NULL), 0);
 	EXPECT(dputs(DST_BUF(buf), STRV("a")), 1);
 	EXPECT(buf[0], 'a');
-	EXPECT(dputs(DST_BUF(buf), STRV("bb")), 0);
+	EXPECT(dputs(DST_BUF(buf), STRV("bb")), 2);
 	EXPECT(dputs(DST_BUF(buf), STRV("ccc")), 0);
 
 	EXPECT(dputf(DST_BUF(buf), NULL), 0);
 	EXPECT(dputf(DST_BUF(buf), "d"), 1);
 	EXPECT(buf[0], 'd');
-#ifdef C_LINUX
 	EXPECT(dputf(DST_BUF(buf), "ee"), 2);
 	EXPECT(dputf(DST_BUF(buf), "fff"), 0);
-#endif
 
 	return ret;
 }
 
 static int t_print()
 {
-	int ret	    = 0;
-	char buf[1] = {0};
+	int ret	      = 0;
+	int count     = 0;
+	char small[1] = {0};
+	char buf[128] = {0};
+#ifdef C_LINUX
+	wchar_t bad_wstr[2] = {(wchar_t)0xD800, 0};
+#endif
 
 	EXPECT(c_printf(NULL), -1);
 
 	EXPECT(c_sprintf(NULL, 0, 0, ""), 0);
-	EXPECT(c_sprintf(buf, sizeof(buf), 0, ""), 0);
+	EXPECT(c_sprintf(small, sizeof(small), 0, ""), 0);
+	EXPECT(c_sprintf(small, sizeof(small), 0, "%"), -1);
+	EXPECT(c_sprintf(small, sizeof(small), 0, "%n", &count), -1);
 	EXPECT(c_sprintv(NULL, 0, 0, NULL, NULL), -1);
+	EXPECT(c_sprintf(buf, sizeof(buf), 0, "%%"), 1);
+	EXPECT(c_sprintf(buf, sizeof(buf), 0, "%*d", 3, 1), 3);
+	EXPECT(c_sprintf(buf, sizeof(buf), 0, "%.2d", 1), 2);
+	EXPECT(c_sprintf(buf, sizeof(buf), 0, "%.*d", 2, 1), 2);
+	EXPECT(c_sprintf(buf, sizeof(buf), 0, "%hhd", 1), 1);
+	EXPECT(c_sprintf(buf, sizeof(buf), 0, "%lld", 1LL), 1);
+#ifdef C_WIN
+	EXPECT(c_sprintf(buf, sizeof(buf), 0, "%I64d", 1LL), 1);
+#else
+	EXPECT(c_sprintf(buf, sizeof(buf), 0, "%I64d", 1), 64);
+#endif
+	EXPECT(c_sprintf(small, sizeof(small), 0, "%q"), -1);
+#ifdef C_LINUX
+	EXPECT(c_sprintf(buf, sizeof(buf), 0, "%ls", bad_wstr) < 0, 1);
+#endif
 
 	return ret;
 }
