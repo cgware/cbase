@@ -1,3 +1,7 @@
+#if defined(__linux__) && !defined(_GNU_SOURCE)
+	#define _GNU_SOURCE
+#endif
+
 #include "cerr.h"
 #include "cfs.h"
 #include "cproc.h"
@@ -297,6 +301,49 @@ static int t_cfs()
 
 	return ret;
 }
+
+#ifdef C_LINUX
+static int t_cfs_nonseekable()
+{
+	int ret = 0;
+	int fds[2];
+	EXPECT(pipe(fds), 0);
+	char path[64];
+	snprintf(path, sizeof(path), "/proc/self/fd/%d", fds[0]);
+	void *file;
+	EXPECT(cfs_open(path, "rb", &file), CERR_OK);
+	size_t size = 0;
+	EXPECT(cfs_du(file, &size), CERR_DESC);
+	EXPECT(cfs_close(file), CERR_OK);
+	close(fds[0]);
+	close(fds[1]);
+	return ret;
+}
+
+static int t_cfs_seek(void *cookie, off64_t *offset, int whence)
+{
+	(void)cookie;
+	if (whence == SEEK_SET) {
+		return -1;
+	}
+	*offset = 0;
+	return 0;
+}
+
+static int t_cfs_seek_reset_failure()
+{
+	int ret			 = 0;
+	cookie_io_functions_t io = {.seek = t_cfs_seek};
+	FILE *file		 = fopencookie(NULL, "r", io);
+	if (file == NULL) {
+		return 1;
+	}
+	size_t size = 0;
+	EXPECT(cfs_du(file, &size), CERR_DESC);
+	fclose(file);
+	return ret;
+}
+#endif
 
 static int t_cfs_ls()
 {
@@ -765,6 +812,10 @@ int main()
 	EXPECT(t_cerr(), 0);
 	EXPECT(t_cproc(), 0);
 	EXPECT(t_cfs(), 0);
+#ifdef C_LINUX
+	EXPECT(t_cfs_nonseekable(), 0);
+	EXPECT(t_cfs_seek_reset_failure(), 0);
+#endif
 	EXPECT(t_cfs_ls(), 0);
 	EXPECT(t_csock(), 0);
 	EXPECT(t_ctime_sleep(), 0);

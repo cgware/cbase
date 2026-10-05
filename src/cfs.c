@@ -53,7 +53,7 @@ cerr_t cfs_open(const char *path, const char *mode, void **file)
 	case EACCES: ret = cfs_isdir(path) ? CERR_TYPE : CERR_UNKNOWN; break;
 	case EINVAL: ret = path[0] == '\0' ? CERR_NOT_FOUND : CERR_VAL; break;
 #else
-	case 0: ret = cfs_isfile(path) ? CERR_OK : (fclose(*file), CERR_TYPE); break;
+	case 0: ret = cfs_isdir(path) ? (fclose(*file), CERR_TYPE) : CERR_OK; break;
 	case ENOTDIR: ret = CERR_NOT_FOUND; break;
 	case EISDIR: ret = CERR_TYPE; break;
 	case EINVAL: ret = CERR_VAL; break;
@@ -132,9 +132,14 @@ cerr_t cfs_du(void *file, size_t *size)
 		return CERR_VAL;
 	}
 
-	fseek(file, 0L, SEEK_END);
-	*size = ftell(file);
-	fseek(file, 0L, SEEK_SET);
+	if (fseek(file, 0L, SEEK_END) != 0) {
+		return CERR_DESC;
+	}
+	long length = ftell(file);
+	if (length < 0 || fseek(file, 0L, SEEK_SET) != 0) {
+		return CERR_DESC;
+	}
+	*size = (size_t)length;
 
 	return CERR_OK;
 }
