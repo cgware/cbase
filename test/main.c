@@ -2,6 +2,7 @@
 #include "cfs.h"
 #include "cproc.h"
 #include "csock.h"
+#include "cterm.h"
 #include "ctime.h"
 #include "dst.h"
 #include "mem_stats.h"
@@ -12,8 +13,11 @@
 #include "wprint.h"
 
 #include <inttypes.h>
-#include <stdio.h>
+#include <time.h>
 #include <wchar.h>
+#ifdef C_LINUX
+	#include <unistd.h>
+#endif
 
 #define EXPECT(_act, _exp)                                                                                                                 \
 	do {                                                                                                                               \
@@ -566,14 +570,13 @@ static int t_ctime_sleep()
 	return ret;
 }
 
-static int t_ctime_str()
+static int t_ctime_format_utc()
 {
 	int ret = 0;
 
 	char buf[CTIME_BUF_SIZE] = {0};
 
-	c_time_str(NULL);
-	c_time_str(buf);
+	EXPECT(c_time_format_utc(buf, sizeof(buf), c_time()), 0);
 
 	EXPECT(buf[4], '-');
 	EXPECT(buf[7], '-');
@@ -581,6 +584,23 @@ static int t_ctime_str()
 	EXPECT(buf[13], ':');
 	EXPECT(buf[16], ':');
 	EXPECT(buf[19], '.');
+	EXPECT(c_time_format_utc(buf, sizeof(buf), 7), 0);
+	EXPECT(cstreq(buf, "1970-01-01 00:00:00.007"), 1);
+	EXPECT(c_time_format_utc(buf, sizeof(buf), 1007), 0);
+	EXPECT(cstreq(buf, "1970-01-01 00:00:01.007"), 1);
+	EXPECT(c_time_format_utc(buf, sizeof(buf) - 1, 7), 1);
+	EXPECT(c_time_format_utc(NULL, sizeof(buf), 7), 1);
+	if (sizeof(time_t) >= 8) {
+		EXPECT(c_time_format_utc(buf, sizeof(buf), UINT64_MAX), 1);
+		EXPECT(c_time_format_utc(buf, sizeof(buf), 253402300800000ULL), 1);
+	}
+	EXPECT(c_term_color(NULL), 0);
+#ifdef C_LINUX
+	EXPECT(c_term_color(stdout), isatty(STDOUT_FILENO) != 0);
+	EXPECT(c_term_color(stderr), isatty(STDERR_FILENO) != 0);
+#else
+	EXPECT(c_term_color(stdout) == 0 || c_term_color(stdout) == 1, 1);
+#endif
 
 	return ret;
 }
@@ -627,6 +647,10 @@ static int t_print()
 	EXPECT(c_sprintv(NULL, 0, 0, NULL, NULL), -1);
 	EXPECT(c_sprintf(buf, sizeof(buf), 0, "%%"), 1);
 	EXPECT(c_sprintf(buf, sizeof(buf), 0, "%*d", 3, 1), 3);
+	EXPECT(c_sprintf(buf, sizeof(buf), 0, "%05d", 1), 5);
+	EXPECT(cstreq(buf, "00001"), 1);
+	EXPECT(c_sprintf(buf, sizeof(buf), 0, "%3d", 1), 3);
+	EXPECT(cstreq(buf, "  1"), 1);
 	EXPECT(c_sprintf(buf, sizeof(buf), 0, "%.2d", 1), 2);
 	EXPECT(c_sprintf(buf, sizeof(buf), 0, "%.*d", 2, 1), 2);
 	EXPECT(c_sprintf(buf, sizeof(buf), 0, "%hhd", 1), 1);
@@ -744,7 +768,7 @@ int main()
 	EXPECT(t_cfs_ls(), 0);
 	EXPECT(t_csock(), 0);
 	EXPECT(t_ctime_sleep(), 0);
-	EXPECT(t_ctime_str(), 0);
+	EXPECT(t_ctime_format_utc(), 0);
 	EXPECT(t_dst(), 0);
 	EXPECT(t_print(), 0);
 	EXPECT(t_wdst(), 0);
