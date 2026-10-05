@@ -6,6 +6,7 @@
 #include "cfs.h"
 #include "cproc.h"
 #include "csock.h"
+#include "cspinlock.h"
 #include "cterm.h"
 #include "ctime.h"
 #include "dst.h"
@@ -656,6 +657,18 @@ static int t_ctime_format_utc()
 	return ret;
 }
 
+static int t_cspinlock()
+{
+	int ret		 = 0;
+	cspinlock_t lock = CSPINLOCK_INIT;
+	EXPECT(lock.state, 0);
+	cspinlock_lock(&lock);
+	EXPECT(lock.state, 1);
+	cspinlock_unlock(&lock);
+	EXPECT(lock.state, 0);
+	return ret;
+}
+
 static int t_dst()
 {
 	int ret	    = 0;
@@ -824,6 +837,7 @@ int main()
 	EXPECT(t_csock(), 0);
 	EXPECT(t_ctime_sleep(), 0);
 	EXPECT(t_ctime_format_utc(), 0);
+	EXPECT(t_cspinlock(), 0);
 	EXPECT(t_dst(), 0);
 	EXPECT(t_print(), 0);
 	EXPECT(t_wdst(), 0);
