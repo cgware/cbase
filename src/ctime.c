@@ -7,13 +7,11 @@
 #include "platform.h"
 
 #include <stdio.h>
-#include <time.h>
 
 #if defined(C_WIN)
 	#include <windows.h>
 #else
 	#include <sys/time.h>
-	#include <unistd.h>
 #endif
 
 typedef struct ctime_s {
@@ -54,26 +52,37 @@ u64 c_time()
 
 int c_time_format_utc(char *buf, size_t size, u64 time)
 {
-	if (buf == NULL || size < CTIME_BUF_SIZE) {
+	if (buf == NULL || size < CTIME_BUF_SIZE || time > 253402300799999ULL) {
 		return 1;
 	}
 
-	time_t seconds = (time_t)(time / 1000);
-	struct tm utc;
-#if defined(C_WIN)
-	if (gmtime_s(&utc, &seconds) != 0) {
-		return 1;
-	}
-#else
-	if (gmtime_r(&seconds, &utc) == NULL) {
-		return 1; // LCOV_EXCL_LINE: u64 milliseconds cannot exceed gmtime_r's calendar range on Linux.
-	}
-#endif
+	u64 seconds	= time / 1000;
+	u64 days	= seconds / 86400;
+	u64 day_seconds = seconds % 86400;
 
-	if (strftime(buf, size, "%Y-%m-%d %H:%M:%S", &utc) != 19) {
-		return 1;
-	}
-	return snprintf(buf + 19, size - 19, ".%03u", (u32)(time % 1000)) == 4 ? 0 : 1;
+	u64 z		= days + 719468;
+	u64 era		= z / 146097;
+	u64 day_of_era	= z - era * 146097;
+	u64 year_of_era = (day_of_era - day_of_era / 1460 + day_of_era / 36524 - day_of_era / 146096) / 365;
+	u64 year	= year_of_era + era * 400;
+	u64 day_of_year = day_of_era - (365 * year_of_era + year_of_era / 4 - year_of_era / 100);
+	u64 month_part	= (5 * day_of_year + 2) / 153;
+	u64 day		= day_of_year - (153 * month_part + 2) / 5 + 1;
+	u64 month	= month_part < 10 ? month_part + 3 : month_part - 9;
+	year += month <= 2;
+
+	return snprintf(buf,
+			size,
+			"%04u-%02u-%02u %02u:%02u:%02u.%03u",
+			(u32)year,
+			(u32)month,
+			(u32)day,
+			(u32)(day_seconds / 3600),
+			(u32)(day_seconds / 60 % 60),
+			(u32)(day_seconds % 60),
+			(u32)(time % 1000)) == CTIME_BUF_SIZE - 1
+		       ? 0
+		       : 1;
 }
 
 int c_sleep(u32 ms)

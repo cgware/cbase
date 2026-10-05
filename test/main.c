@@ -635,12 +635,16 @@ static int t_ctime_format_utc()
 	EXPECT(cstreq(buf, "1970-01-01 00:00:00.007"), 1);
 	EXPECT(c_time_format_utc(buf, sizeof(buf), 1007), 0);
 	EXPECT(cstreq(buf, "1970-01-01 00:00:01.007"), 1);
+	EXPECT(c_time_format_utc(buf, sizeof(buf), 951782400000ULL), 0);
+	EXPECT(cstreq(buf, "2000-02-29 00:00:00.000"), 1);
+	EXPECT(c_time_format_utc(buf, sizeof(buf), 2147483648000ULL), 0);
+	EXPECT(cstreq(buf, "2038-01-19 03:14:08.000"), 1);
+	EXPECT(c_time_format_utc(buf, sizeof(buf), 253402300799999ULL), 0);
+	EXPECT(cstreq(buf, "9999-12-31 23:59:59.999"), 1);
 	EXPECT(c_time_format_utc(buf, sizeof(buf) - 1, 7), 1);
 	EXPECT(c_time_format_utc(NULL, sizeof(buf), 7), 1);
-	if (sizeof(time_t) >= 8) {
-		EXPECT(c_time_format_utc(buf, sizeof(buf), UINT64_MAX), 1);
-		EXPECT(c_time_format_utc(buf, sizeof(buf), 253402300800000ULL), 1);
-	}
+	EXPECT(c_time_format_utc(buf, sizeof(buf), UINT64_MAX), 1);
+	EXPECT(c_time_format_utc(buf, sizeof(buf), 253402300800000ULL), 1);
 	EXPECT(c_term_color(NULL), 0);
 #ifdef C_LINUX
 	EXPECT(c_term_color(stdout), isatty(STDOUT_FILENO) != 0);
