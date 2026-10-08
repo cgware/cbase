@@ -596,6 +596,22 @@ static int t_csock()
 	return ret;
 }
 
+static int t_ctime_monotonic()
+{
+	int ret = 0;
+	double start;
+	double end;
+
+	EXPECT(c_time_monotonic(NULL), 1);
+	EXPECT(c_time_monotonic(&start), 0);
+	EXPECT(c_sleep(1), 0);
+	EXPECT(c_time_monotonic(&end), 0);
+	EXPECT(start >= 0.0, 1);
+	EXPECT(end >= start, 1);
+
+	return ret;
+}
+
 static int t_ctime_sleep()
 {
 	int ret = 0;
@@ -835,6 +851,7 @@ int main()
 #endif
 	EXPECT(t_cfs_ls(), 0);
 	EXPECT(t_csock(), 0);
+	EXPECT(t_ctime_monotonic(), 0);
 	EXPECT(t_ctime_sleep(), 0);
 	EXPECT(t_ctime_format_utc(), 0);
 	EXPECT(t_cspinlock(), 0);

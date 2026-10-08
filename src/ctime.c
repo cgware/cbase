@@ -12,6 +12,7 @@
 	#include <windows.h>
 #else
 	#include <sys/time.h>
+	#include <time.h>
 #endif
 
 typedef struct ctime_s {
@@ -48,6 +49,32 @@ u64 c_time()
 {
 	const ctime_t now = get_time();
 	return (u64)now.sec * 1000 + (u64)now.msec;
+}
+
+int c_time_monotonic(double *seconds)
+{
+	if (seconds == NULL) {
+		return 1;
+	}
+
+#if defined(C_WIN)
+	LARGE_INTEGER frequency;
+	LARGE_INTEGER counter;
+	if (!QueryPerformanceFrequency(&frequency) || !QueryPerformanceCounter(&counter) || frequency.QuadPart <= 0) {
+		return 1;
+	}
+
+	*seconds = (double)counter.QuadPart / (double)frequency.QuadPart;
+#else
+	struct timespec now;
+	if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) {
+		return 1; // LCOV_EXCL_LINE
+	}
+
+	*seconds = (double)now.tv_sec + (double)now.tv_nsec / 1000000000.0;
+#endif
+
+	return 0;
 }
 
 int c_time_format_utc(char *buf, size_t size, u64 time)
